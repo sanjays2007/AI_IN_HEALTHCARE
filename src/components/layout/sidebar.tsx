@@ -12,6 +12,7 @@ import { Logo } from '@/components/icons';
 import { usePathname } from 'next/navigation';
 import { Home, Users, BarChart2, LifeBuoy, Settings } from 'lucide-react';
 import { UserNav } from './user-nav';
+import Link from 'next/link';
 
 const menuItems = [
   { href: '/dashboard', label: 'Dashboard', icon: Home },
@@ -35,13 +36,14 @@ export default function AppSidebar() {
           {menuItems.map((item) => (
             <SidebarMenuItem key={item.href}>
               <SidebarMenuButton
-                href={item.href}
                 asChild
                 isActive={pathname.startsWith(item.href)}
                 tooltip={item.label}
               >
-                <item.icon />
-                <span>{item.label}</span>
+                <Link href={item.href}>
+                  <item.icon />
+                  <span>{item.label}</span>
+                </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
           ))}
