@@ -9,6 +9,10 @@ import {
   type InterventionRecommendationInput,
 } from '@/ai/flows/intervention-recommendation-generation-flow';
 import {
+  generatePatientNudge,
+  type PatientNudgeInput,
+} from '@/ai/flows/patient-nudge-generation-flow';
+import {
   predictiveInterventionSimulation,
   type PredictiveInterventionSimulationInput,
 } from '@/ai/flows/predictive-intervention-simulation-flow';
@@ -40,6 +44,16 @@ export async function runPredictiveSimulationAction(input: PredictiveInterventio
   } catch (error) {
     console.error('Error running predictive simulation:', error);
     return { success: false, error: 'Failed to run simulation. Please try again.' };
+  }
+}
+
+export async function generatePatientNudgeAction(input: PatientNudgeInput) {
+  try {
+    const result = await generatePatientNudge(input);
+    return { success: true, data: result };
+  } catch (error) {
+    console.error('Error generating patient nudge:', error);
+    return { success: false, error: 'Failed to generate nudge. Please try again.' };
   }
 }
 

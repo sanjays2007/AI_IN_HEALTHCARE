@@ -1,5 +1,6 @@
+'use client';
+
 import { patients } from '@/lib/data';
-import { notFound } from 'next/navigation';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import Image from 'next/image';
 import ClinicalOverview from './components/clinical-overview';
@@ -8,24 +9,12 @@ import BehavioralTimeline from './components/behavioral-timeline';
 import RecommendationPanel from './components/recommendation-panel';
 import SimulationTool from './components/simulation-tool';
 import { Badge } from '@/components/ui/badge';
-import type { Metadata } from 'next';
 import DoctorSummary from './components/doctor-summary';
+import PatientNudgeTool from './components/patient-nudge-tool';
+import { useParams, notFound } from 'next/navigation';
 
-type PatientDetailPageProps = {
-  params: { id: string };
-};
-
-export async function generateMetadata({ params }: PatientDetailPageProps): Promise<Metadata> {
-  const patient = patients.find((p) => p.id === params.id);
-  if (!patient) {
-    return { title: 'Patient Not Found' };
-  }
-  return {
-    title: `Risk Profile - ${patient.name}`,
-  };
-}
-
-export default function PatientDetailPage({ params }: PatientDetailPageProps) {
+export default function PatientDetailPage() {
+  const params = useParams();
   const patient = patients.find((p) => p.id === params.id);
 
   if (!patient) {
@@ -69,6 +58,7 @@ export default function PatientDetailPage({ params }: PatientDetailPageProps) {
           <RiskPanel patient={patient} />
           <RecommendationPanel patient={patient} />
           <SimulationTool patient={patient} />
+          <PatientNudgeTool patient={patient} />
         </div>
       </div>
     </div>
