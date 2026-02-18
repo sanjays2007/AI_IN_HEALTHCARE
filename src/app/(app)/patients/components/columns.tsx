@@ -50,6 +50,10 @@ export const columns: ColumnDef<Patient>[] = [
     header: 'Diagnosis',
   },
   {
+    accessorKey: 'treatmentPhase',
+    header: 'Treatment Phase',
+  },
+  {
     accessorKey: 'riskScore',
     header: ({ column }) => {
       return (

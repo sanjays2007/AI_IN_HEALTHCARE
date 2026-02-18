@@ -23,17 +23,21 @@ import {
   type SortingState,
 } from '@tanstack/react-table';
 
+const treatmentPhases = [...new Set(patients.map((p) => p.treatmentPhase))];
+
 export default function PatientsPage() {
   const data = patients;
 
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
+  const [globalFilter, setGlobalFilter] = useState('');
 
   const table = useReactTable({
     data,
     columns,
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
+    onGlobalFilterChange: setGlobalFilter,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
@@ -41,6 +45,7 @@ export default function PatientsPage() {
     state: {
       sorting,
       columnFilters,
+      globalFilter,
     },
   });
 
@@ -50,15 +55,12 @@ export default function PatientsPage() {
       <Card>
         <CardHeader>
           <CardTitle>Patient Risk List</CardTitle>
-          <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
             <Input
-              placeholder="Filter by name..."
-              value={
-                (table.getColumn('name')?.getFilterValue() as string) ?? ''
-              }
-              onChange={(event) =>
-                table.getColumn('name')?.setFilterValue(event.target.value)
-              }
+              placeholder="Filter by name or ID..."
+              value={globalFilter ?? ''}
+              onChange={(event) => setGlobalFilter(event.target.value)}
+              className="lg:col-span-1"
             />
             <Select
               value={
@@ -108,6 +110,28 @@ export default function PatientsPage() {
                 </SelectItem>
               </SelectContent>
             </Select>
+             <Select
+              value={
+                (table.getColumn('treatmentPhase')?.getFilterValue() as string) ?? ''
+              }
+              onValueChange={(value) =>
+                table
+                  .getColumn('treatmentPhase')
+                  ?.setFilterValue(value === 'all' ? null : value)
+              }
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Filter by treatment phase..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Phases</SelectItem>
+                {treatmentPhases.map((phase) => (
+                  <SelectItem key={phase} value={phase}>
+                    {phase}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             <Select
               value={
                 (table
@@ -135,7 +159,7 @@ export default function PatientsPage() {
           </div>
         </CardHeader>
         <CardContent>
-          <DataTable columns={columns} table={table} />
+          <DataTable table={table} />
         </CardContent>
       </Card>
     </div>

@@ -16,15 +16,13 @@ import {
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 
-interface DataTableProps<TData, TValue> {
-  columns: ColumnDef<TData, TValue>[];
+interface DataTableProps<TData> {
   table: TableInstance<TData>;
 }
 
-export function DataTable<TData, TValue>({
-  columns,
+export function DataTable<TData>({
   table,
-}: DataTableProps<TData, TValue>) {
+}: DataTableProps<TData>) {
   return (
     <div>
       <div className="rounded-md border">
@@ -67,7 +65,7 @@ export function DataTable<TData, TValue>({
             ) : (
               <TableRow>
                 <TableCell
-                  colSpan={columns.length}
+                  colSpan={table.getAllColumns().length}
                   className="h-24 text-center"
                 >
                   No results.
