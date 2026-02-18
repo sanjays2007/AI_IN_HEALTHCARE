@@ -71,9 +71,6 @@ export const columns: ColumnDef<Patient>[] = [
       const category = row.getValue('riskCategory') as RiskCategory;
       return <Badge className={riskCategoryColors[category]}>{category}</Badge>;
     },
-    filterFn: (row, id, value) => {
-        return value.includes(row.getValue(id));
-    },
   },
   {
     accessorKey: 'primaryRiskFactor',
