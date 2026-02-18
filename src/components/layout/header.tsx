@@ -13,6 +13,7 @@ import { usePathname } from 'next/navigation';
 import { Fragment } from 'react';
 import { UserNav } from './user-nav';
 import { Home } from 'lucide-react';
+import { ThemeToggle } from './theme-toggle';
 
 export default function AppHeader() {
   const pathname = usePathname();
@@ -49,6 +50,7 @@ export default function AppHeader() {
         </BreadcrumbList>
       </Breadcrumb>
       <div className="ml-auto flex items-center gap-4">
+        <ThemeToggle />
         <UserNav />
       </div>
     </header>
