@@ -1,6 +1,10 @@
 'use server';
 
 import {
+  generateDoctorRiskSummary,
+  type DoctorRiskSummaryGenerationInput,
+} from '@/ai/flows/doctor-risk-summary-generation-flow';
+import {
   generateInterventionRecommendations,
   type InterventionRecommendationInput,
 } from '@/ai/flows/intervention-recommendation-generation-flow';
@@ -8,6 +12,16 @@ import {
   predictiveInterventionSimulation,
   type PredictiveInterventionSimulationInput,
 } from '@/ai/flows/predictive-intervention-simulation-flow';
+
+export async function generateDoctorRiskSummaryAction(input: DoctorRiskSummaryGenerationInput) {
+  try {
+    const result = await generateDoctorRiskSummary(input);
+    return { success: true, data: result };
+  } catch (error) {
+    console.error('Error generating doctor risk summary:', error);
+    return { success: false, error: 'Failed to generate summary. Please try again.' };
+  }
+}
 
 export async function getInterventionRecommendationsAction(input: InterventionRecommendationInput) {
   try {

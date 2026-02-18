@@ -9,6 +9,7 @@ import RecommendationPanel from './components/recommendation-panel';
 import SimulationTool from './components/simulation-tool';
 import { Badge } from '@/components/ui/badge';
 import type { Metadata } from 'next';
+import DoctorSummary from './components/doctor-summary';
 
 type PatientDetailPageProps = {
   params: { id: string };
@@ -64,6 +65,7 @@ export default function PatientDetailPage({ params }: PatientDetailPageProps) {
           <BehavioralTimeline events={patient.behavioralTimeline} />
         </div>
         <div className="lg:col-span-2 flex flex-col gap-6">
+          <DoctorSummary patient={patient} />
           <RiskPanel patient={patient} />
           <RecommendationPanel patient={patient} />
           <SimulationTool patient={patient} />
