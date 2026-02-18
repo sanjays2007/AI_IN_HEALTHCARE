@@ -16,6 +16,7 @@ import {
   predictiveInterventionSimulation,
   type PredictiveInterventionSimulationInput,
 } from '@/ai/flows/predictive-intervention-simulation-flow';
+import type { Intervention } from '@/lib/types';
 
 export async function generateDoctorRiskSummaryAction(input: DoctorRiskSummaryGenerationInput) {
   try {
@@ -57,9 +58,30 @@ export async function generatePatientNudgeAction(input: PatientNudgeInput) {
   }
 }
 
-export async function logInterventionAction(patientId: string, intervention: any, reason: string) {
-    // In a real app, this would save to a database.
-    console.log(`Intervention logged for patient ${patientId}:`, { intervention, reason });
-    await new Promise(resolve => setTimeout(resolve, 500)); // Simulate DB call
-    return { success: true, message: 'Intervention logged successfully.' };
+export async function logInterventionAction(patientId: string, intervention: Intervention, action: 'Accepted' | 'Rejected') {
+    // In a real app, this would save to a database and trigger a workflow.
+    console.log(`Intervention ${action} for patient ${patientId}:`, { intervention });
+    
+    if (action === 'Rejected') {
+        await new Promise(resolve => setTimeout(resolve, 500)); // Simulate DB call
+        return { success: true, message: `Intervention '${intervention.type}' was logged as rejected.` };
+    }
+
+    let notificationMessage = `Intervention '${intervention.type}' has been accepted and logged.`;
+
+    // Simulate automated workflow based on intervention type
+    const interventionType = intervention.type.toLowerCase();
+    if (interventionType.includes('financial')) {
+        notificationMessage = "Financial counselor has been notified to assist the patient.";
+    } else if (interventionType.includes('nurse')) {
+        notificationMessage = "A follow-up task has been created for the nursing team.";
+    } else if (interventionType.includes('mental health')) {
+        notificationMessage = "A referral has been sent to the mental health support team.";
+    } else if (interventionType.includes('dosage') || interventionType.includes('tele-consult')) {
+        notificationMessage = "The care team has been notified to review the patient's plan.";
+    }
+
+    await new Promise(resolve => setTimeout(resolve, 500)); // Simulate DB call & workflow trigger
+
+    return { success: true, message: notificationMessage };
 }
