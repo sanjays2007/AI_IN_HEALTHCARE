@@ -12,10 +12,13 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import Image from 'next/image';
+import { useAuth } from '@/contexts/auth-context';
 
 const doctorAvatar = "https://picsum.photos/seed/doctor/100/100";
 
 export function UserNav() {
+  const { user, logout } = useAuth();
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -24,22 +27,22 @@ export function UserNav() {
             <AvatarImage asChild src={doctorAvatar}>
               <Image 
                 src={doctorAvatar} 
-                alt="Dr. Evans" 
+                alt={user?.name || ''}
                 width={36} 
                 height={36}
                 data-ai-hint="doctor professional"
               />
             </AvatarImage>
-            <AvatarFallback>DE</AvatarFallback>
+            <AvatarFallback>{user?.name?.charAt(0) || 'D'}</AvatarFallback>
           </Avatar>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-56" align="end" forceMount>
         <DropdownMenuLabel className="font-normal">
           <div className="flex flex-col space-y-1">
-            <p className="text-sm font-medium leading-none">Dr. Evans</p>
+            <p className="text-sm font-medium leading-none">{user?.name}</p>
             <p className="text-xs leading-none text-muted-foreground">
-              doctor.evans@hospital.com
+              {user?.email}
             </p>
           </div>
         </DropdownMenuLabel>
@@ -49,7 +52,7 @@ export function UserNav() {
           <DropdownMenuItem>Settings</DropdownMenuItem>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
-        <DropdownMenuItem>Log out</DropdownMenuItem>
+        <DropdownMenuItem onClick={logout}>Log out</DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );
