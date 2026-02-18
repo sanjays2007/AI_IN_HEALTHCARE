@@ -12,6 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import DoctorSummary from './components/doctor-summary';
 import PatientNudgeTool from './components/patient-nudge-tool';
 import { useParams, notFound } from 'next/navigation';
+import PersonalizedEducation from './components/personalized-education';
 
 export default function PatientDetailPage() {
   const params = useParams();
@@ -59,6 +60,7 @@ export default function PatientDetailPage() {
           <RecommendationPanel patient={patient} />
           <SimulationTool patient={patient} />
           <PatientNudgeTool patient={patient} />
+          <PersonalizedEducation patient={patient} />
         </div>
       </div>
     </div>

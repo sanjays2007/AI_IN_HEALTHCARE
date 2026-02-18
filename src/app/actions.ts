@@ -17,6 +17,11 @@ import {
   type PredictiveInterventionSimulationInput,
 } from '@/ai/flows/predictive-intervention-simulation-flow';
 import type { Intervention } from '@/lib/types';
+import {
+  generatePersonalizedEducation,
+  type PersonalizedEducationInput,
+} from '@/ai/flows/personalized-education-generation-flow';
+
 
 export async function generateDoctorRiskSummaryAction(input: DoctorRiskSummaryGenerationInput) {
   try {
@@ -84,4 +89,14 @@ export async function logInterventionAction(patientId: string, intervention: Int
     await new Promise(resolve => setTimeout(resolve, 500)); // Simulate DB call & workflow trigger
 
     return { success: true, message: notificationMessage };
+}
+
+export async function generatePersonalizedEducationAction(input: PersonalizedEducationInput) {
+  try {
+    const result = await generatePersonalizedEducation(input);
+    return { success: true, data: result };
+  } catch (error) {
+    console.error('Error generating personalized education:', error);
+    return { success: false, error: 'Failed to generate content. Please try again.' };
+  }
 }
