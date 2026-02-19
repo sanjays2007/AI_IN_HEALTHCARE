@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/sidebar';
 import { Logo } from '@/components/icons';
 import { usePathname } from 'next/navigation';
-import { Home, Users, BarChart2, LifeBuoy, Settings } from 'lucide-react';
+import { Home, Users, BarChart2, Shield } from 'lucide-react';
 import { UserNav } from './user-nav';
 import Link from 'next/link';
 
@@ -18,6 +18,7 @@ const menuItems = [
   { href: '/dashboard', label: 'Dashboard', icon: Home },
   { href: '/patients', label: 'Patients', icon: Users },
   { href: '/analytics', label: 'Analytics', icon: BarChart2 },
+  { href: '/admin', label: 'Admin', icon: Shield },
 ];
 
 export default function AppSidebar() {
