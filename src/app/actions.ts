@@ -21,6 +21,10 @@ import {
   generatePersonalizedEducation,
   type PersonalizedEducationInput,
 } from '@/ai/flows/personalized-education-generation-flow';
+import {
+  generateFinancialAssistance,
+  type FinancialAssistanceInput,
+} from '@/ai/flows/financial-assistance-generation-flow';
 
 
 export async function generateDoctorRiskSummaryAction(input: DoctorRiskSummaryGenerationInput) {
@@ -98,5 +102,15 @@ export async function generatePersonalizedEducationAction(input: PersonalizedEdu
   } catch (error) {
     console.error('Error generating personalized education:', error);
     return { success: false, error: 'Failed to generate content. Please try again.' };
+  }
+}
+
+export async function generateFinancialAssistanceAction(input: FinancialAssistanceInput) {
+  try {
+    const result = await generateFinancialAssistance(input);
+    return { success: true, data: result };
+  } catch (error) {
+    console.error('Error generating financial assistance:', error);
+    return { success: false, error: 'Failed to generate guidance. Please try again.' };
   }
 }

@@ -28,6 +28,7 @@ export type Patient = {
   missedAppointments: number;
   treatmentType: 'TB' | 'Dialysis' | 'Chemo' | 'Mental Health' | 'Substance Use';
   age: number;
+  incomeLevel: 'Low' | 'Medium' | 'High';
   treatmentPhase: string;
   medicationPlan: string;
   labProgress: string;

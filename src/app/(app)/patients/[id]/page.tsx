@@ -13,6 +13,7 @@ import DoctorSummary from './components/doctor-summary';
 import PatientNudgeTool from './components/patient-nudge-tool';
 import { useParams, notFound } from 'next/navigation';
 import PersonalizedEducation from './components/personalized-education';
+import FinancialAssistance from './components/financial-assistance';
 
 export default function PatientDetailPage() {
   const params = useParams();
@@ -61,6 +62,7 @@ export default function PatientDetailPage() {
           <SimulationTool patient={patient} />
           <PatientNudgeTool patient={patient} />
           <PersonalizedEducation patient={patient} />
+          <FinancialAssistance patient={patient} />
         </div>
       </div>
     </div>
