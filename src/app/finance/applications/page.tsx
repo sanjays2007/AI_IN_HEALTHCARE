@@ -42,13 +42,16 @@ import {
   formatCurrency,
   FinancialApplication,
 } from '@/lib/finance-data';
+import { useToast } from '@/hooks/use-toast';
 
 export default function FinanceApplicationsPage() {
+  const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [selectedApplication, setSelectedApplication] = useState<FinancialApplication | null>(null);
   const [showReviewDialog, setShowReviewDialog] = useState(false);
+  const [showDetailDialog, setShowDetailDialog] = useState(false);
   const [reviewNotes, setReviewNotes] = useState('');
   const [approvedAmount, setApprovedAmount] = useState('');
 
@@ -127,7 +130,7 @@ export default function FinanceApplicationsPage() {
             )}
           </div>
           <div className="flex flex-col gap-2">
-            <Button variant="outline" size="sm" onClick={() => setSelectedApplication(application)}>
+            <Button variant="outline" size="sm" onClick={() => { setSelectedApplication(application); setShowDetailDialog(true); }}>
               <Eye className="h-4 w-4 mr-1" /> View
             </Button>
             {(application.status === 'pending' || application.status === 'under-review') && (
@@ -381,7 +384,11 @@ export default function FinanceApplicationsPage() {
               variant="destructive"
               onClick={() => {
                 setShowReviewDialog(false);
-                // Handle rejection
+                toast({
+                  title: 'Application Rejected',
+                  description: `Application ${selectedApplication?.id} has been rejected.`,
+                  variant: 'destructive',
+                });
               }}
             >
               <XCircle className="h-4 w-4 mr-2" />
@@ -391,12 +398,84 @@ export default function FinanceApplicationsPage() {
               className="bg-emerald-600 hover:bg-emerald-700"
               onClick={() => {
                 setShowReviewDialog(false);
-                // Handle approval
+                toast({
+                  title: 'Application Approved',
+                  description: `Application ${selectedApplication?.id} approved for ${formatCurrency(parseInt(approvedAmount))}.`,
+                });
               }}
             >
               <CheckCircle className="h-4 w-4 mr-2" />
               Approve
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Application Detail Dialog */}
+      <Dialog open={showDetailDialog} onOpenChange={setShowDetailDialog}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Application Details</DialogTitle>
+            <DialogDescription>{selectedApplication?.id}</DialogDescription>
+          </DialogHeader>
+          {selectedApplication && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm text-muted-foreground">Patient Name</p>
+                  <p className="font-medium">{selectedApplication.patientName}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Patient ID</p>
+                  <p className="font-medium">{selectedApplication.patientId}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Category</p>
+                  <Badge className={getCategoryColor(selectedApplication.category)}>{selectedApplication.category}</Badge>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Priority</p>
+                  <Badge className={getPriorityColor(selectedApplication.priority)}>{selectedApplication.priority}</Badge>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Requested Amount</p>
+                  <p className="font-medium">{formatCurrency(selectedApplication.requestedAmount)}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Status</p>
+                  <Badge className={getStatusColor(selectedApplication.status)}>{selectedApplication.status}</Badge>
+                </div>
+                {selectedApplication.approvedAmount && (
+                  <div>
+                    <p className="text-sm text-muted-foreground">Approved Amount</p>
+                    <p className="font-medium text-green-600">{formatCurrency(selectedApplication.approvedAmount)}</p>
+                  </div>
+                )}
+                <div>
+                  <p className="text-sm text-muted-foreground">Application Date</p>
+                  <p className="font-medium">{new Date(selectedApplication.applicationDate).toLocaleDateString()}</p>
+                </div>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Notes</p>
+                <p className="text-sm">{selectedApplication.notes}</p>
+              </div>
+              {selectedApplication.documents.length > 0 && (
+                <div>
+                  <p className="text-sm text-muted-foreground mb-2">Documents</p>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedApplication.documents.map((doc, i) => (
+                      <Button key={i} variant="outline" size="sm" onClick={() => toast({ title: 'Downloading', description: `${doc} is being downloaded...` })}>
+                        <Download className="h-3 w-3 mr-1" /> {doc}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowDetailDialog(false)}>Close</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

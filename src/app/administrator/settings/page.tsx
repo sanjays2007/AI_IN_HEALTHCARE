@@ -35,8 +35,10 @@ import {
   AlertTriangle,
   CheckCircle2,
 } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 export default function SettingsPage() {
+  const { toast } = useToast();
   const [notifications, setNotifications] = useState({
     emailAlerts: true,
     smsAlerts: false,
@@ -58,11 +60,11 @@ export default function SettingsPage() {
     autoEnrollSupport: false,
   });
 
-  const [saved, setSaved] = useState(false);
-
   const handleSave = () => {
-    setSaved(true);
-    setTimeout(() => setSaved(false), 3000);
+    toast({
+      title: 'Settings Saved',
+      description: 'Your preferences have been updated successfully.',
+    });
   };
 
   return (
@@ -79,17 +81,8 @@ export default function SettingsPage() {
           </p>
         </div>
         <Button onClick={handleSave} className="bg-purple-600 hover:bg-purple-700">
-          {saved ? (
-            <>
-              <CheckCircle2 className="h-4 w-4 mr-2" />
-              Saved!
-            </>
-          ) : (
-            <>
-              <Save className="h-4 w-4 mr-2" />
-              Save Changes
-            </>
-          )}
+          <Save className="h-4 w-4 mr-2" />
+          Save Changes
         </Button>
       </div>
 

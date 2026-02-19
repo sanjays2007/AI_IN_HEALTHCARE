@@ -28,9 +28,10 @@ import {
   Save,
   CheckCircle2,
 } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 export default function NurseSettingsPage() {
-  const [saved, setSaved] = useState(false);
+  const { toast } = useToast();
   const [notifications, setNotifications] = useState({
     criticalAlerts: true,
     followUpReminders: true,
@@ -40,8 +41,17 @@ export default function NurseSettingsPage() {
   });
 
   const handleSave = () => {
-    setSaved(true);
-    setTimeout(() => setSaved(false), 3000);
+    toast({
+      title: 'Settings Saved',
+      description: 'Your preferences have been updated successfully.',
+    });
+  };
+
+  const handleChangePassword = () => {
+    toast({
+      title: 'Password Changed',
+      description: 'Your password has been updated successfully.',
+    });
   };
 
   return (
@@ -58,17 +68,8 @@ export default function NurseSettingsPage() {
           </p>
         </div>
         <Button onClick={handleSave} className="bg-teal-600 hover:bg-teal-700">
-          {saved ? (
-            <>
-              <CheckCircle2 className="h-4 w-4 mr-2" />
-              Saved!
-            </>
-          ) : (
-            <>
-              <Save className="h-4 w-4 mr-2" />
-              Save Changes
-            </>
-          )}
+          <Save className="h-4 w-4 mr-2" />
+          Save Changes
         </Button>
       </div>
 
@@ -144,7 +145,7 @@ export default function NurseSettingsPage() {
                   <Input id="confirmPassword" type="password" />
                 </div>
               </div>
-              <Button variant="outline">Change Password</Button>
+              <Button variant="outline" onClick={handleChangePassword}>Change Password</Button>
             </CardContent>
           </Card>
         </TabsContent>

@@ -22,14 +22,17 @@ import {
   ArrowDownRight,
   Activity,
   ChevronRight,
+  X,
 } from 'lucide-react';
 import Link from 'next/link';
+import { useToast } from '@/hooks/use-toast';
 import {
   mockDashboardStats,
   mockRiskDistribution,
   mockDepartmentStats,
   mockRiskTrends,
   mockDoctorAlerts,
+  mockRecommendations,
   getRiskColor,
 } from '@/lib/doctor-data';
 
@@ -38,9 +41,21 @@ export default function DoctorDashboardPage() {
   const [riskDist] = useState(mockRiskDistribution);
   const [deptStats] = useState(mockDepartmentStats);
   const [trends] = useState(mockRiskTrends);
-  const [alerts] = useState(mockDoctorAlerts.filter(a => !a.isRead).slice(0, 4));
+  const [alerts, setAlerts] = useState(mockDoctorAlerts.filter(a => !a.isRead).slice(0, 4));
+  const [pendingRecommendations] = useState(mockRecommendations.filter(r => r.status === 'pending').length);
+  const { toast } = useToast();
 
   const totalPatients = riskDist.low + riskDist.medium + riskDist.high + riskDist.critical;
+
+  const dismissAlert = (alertId: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setAlerts(prev => prev.filter(a => a.id !== alertId));
+    toast({
+      title: "Alert Dismissed",
+      description: "You can still view it in the alerts page",
+    });
+  };
 
   return (
     <div className="space-y-6">
@@ -372,9 +387,8 @@ export default function DoctorDashboardPage() {
                 </div>
               ) : (
                 alerts.map((alert) => (
-                  <Link
+                  <div
                     key={alert.id}
-                    href={`/doctor/patients/${alert.patientId}`}
                     className={`block p-3 rounded-lg border transition-colors hover:bg-muted/50 ${
                       alert.priority === 'critical' ? 'border-red-300 bg-red-50/50 dark:bg-red-900/10' :
                       alert.priority === 'high' ? 'border-orange-300 bg-orange-50/50 dark:bg-orange-900/10' :
@@ -390,7 +404,10 @@ export default function DoctorDashboardPage() {
                       }`}>
                         <AlertTriangle className="h-4 w-4" />
                       </div>
-                      <div className="flex-1 min-w-0">
+                      <Link 
+                        href={`/doctor/patients/${alert.patientId}`}
+                        className="flex-1 min-w-0"
+                      >
                         <div className="flex items-center gap-2">
                           <span className="font-medium text-sm">{alert.patientName}</span>
                           <Badge variant={alert.priority === 'critical' ? 'destructive' : 'outline'} className="text-xs">
@@ -401,10 +418,17 @@ export default function DoctorDashboardPage() {
                         <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">
                           {alert.description}
                         </p>
-                      </div>
-                      <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                      </Link>
+                      <Button 
+                        variant="ghost" 
+                        size="icon"
+                        className="h-6 w-6 text-muted-foreground hover:text-foreground flex-shrink-0"
+                        onClick={(e) => dismissAlert(alert.id, e)}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
                     </div>
-                  </Link>
+                  </div>
                 ))
               )}
             </div>
@@ -434,7 +458,7 @@ export default function DoctorDashboardPage() {
                 <Activity className="h-5 w-5 text-blue-500" />
                 <span>AI Recommendations</span>
                 <span className="text-xs text-muted-foreground">
-                  7 pending actions
+                  {pendingRecommendations} pending actions
                 </span>
               </Link>
             </Button>

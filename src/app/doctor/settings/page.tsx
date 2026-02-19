@@ -28,41 +28,58 @@ import {
   Save,
   AlertTriangle,
   CheckCircle2,
+  RotateCcw,
 } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+
+const defaultSettings = {
+  // Privacy Settings
+  showPatientPhotos: true,
+  anonymizeInReports: false,
+  auditLogEnabled: true,
+  twoFactorAuth: true,
+  
+  // Alert Settings
+  alertCritical: true,
+  alertHigh: true,
+  alertModerate: true,
+  alertLow: false,
+  emailNotifications: true,
+  pushNotifications: true,
+  
+  // Clinical Preferences
+  defaultRiskThreshold: 'medium',
+  defaultTimeRange: '30',
+  autoRefreshEnabled: true,
+  showAIPredictions: true,
+  showConfidenceScores: true,
+  
+  // Display Settings
+  compactView: false,
+  darkModeDefault: false,
+  showRiskColors: true,
+};
 
 export default function SettingsPage() {
   const [saved, setSaved] = useState(false);
-  const [settings, setSettings] = useState({
-    // Privacy Settings
-    showPatientPhotos: true,
-    anonymizeInReports: false,
-    auditLogEnabled: true,
-    twoFactorAuth: true,
-    
-    // Alert Settings
-    alertCritical: true,
-    alertHigh: true,
-    alertModerate: true,
-    alertLow: false,
-    emailNotifications: true,
-    pushNotifications: true,
-    
-    // Clinical Preferences
-    defaultRiskThreshold: 'medium',
-    defaultTimeRange: '30',
-    autoRefreshEnabled: true,
-    showAIPredictions: true,
-    showConfidenceScores: true,
-    
-    // Display Settings
-    compactView: false,
-    darkModeDefault: false,
-    showRiskColors: true,
-  });
+  const [settings, setSettings] = useState({ ...defaultSettings });
+  const { toast } = useToast();
 
   const handleSave = () => {
     setSaved(true);
+    toast({
+      title: "Settings Saved",
+      description: "Your preferences have been updated successfully",
+    });
     setTimeout(() => setSaved(false), 2000);
+  };
+
+  const handleReset = () => {
+    setSettings({ ...defaultSettings });
+    toast({
+      title: "Settings Reset",
+      description: "All settings restored to defaults",
+    });
   };
 
   return (
@@ -78,19 +95,25 @@ export default function SettingsPage() {
             Configure privacy controls and clinical preferences
           </p>
         </div>
-        <Button onClick={handleSave}>
-          {saved ? (
-            <>
-              <CheckCircle2 className="h-4 w-4 mr-2" />
-              Saved!
-            </>
-          ) : (
-            <>
-              <Save className="h-4 w-4 mr-2" />
-              Save Changes
-            </>
-          )}
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={handleReset}>
+            <RotateCcw className="h-4 w-4 mr-2" />
+            Reset to Defaults
+          </Button>
+          <Button onClick={handleSave}>
+            {saved ? (
+              <>
+                <CheckCircle2 className="h-4 w-4 mr-2" />
+                Saved!
+              </>
+            ) : (
+              <>
+                <Save className="h-4 w-4 mr-2" />
+                Save Changes
+              </>
+            )}
+          </Button>
+        </div>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">

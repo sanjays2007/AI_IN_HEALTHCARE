@@ -7,6 +7,9 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { useToast } from '@/hooks/use-toast';
 import { 
   BookOpen, 
   Search, 
@@ -16,23 +19,69 @@ import {
   Lightbulb,
   HelpCircle,
   Heart,
-  ArrowRight
+  ArrowRight,
+  Loader2,
+  X
 } from 'lucide-react';
 import { mockEducationContent, EducationContent } from '@/lib/patient-data';
+import { generateArticleContentAction } from '@/app/actions';
 
 export default function EducationPage() {
   const [content, setContent] = useState<EducationContent[]>(mockEducationContent);
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedArticle, setSelectedArticle] = useState<EducationContent | null>(null);
+  const [articleContent, setArticleContent] = useState<string>('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [readerOpen, setReaderOpen] = useState(false);
+  const { toast } = useToast();
 
   const filteredContent = content.filter(item =>
     item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
     item.summary.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  const openArticle = async (article: EducationContent) => {
+    setSelectedArticle(article);
+    setReaderOpen(true);
+    setIsLoading(true);
+    setArticleContent('');
+
+    try {
+      const result = await generateArticleContentAction({
+        title: article.title,
+        category: article.category,
+        summary: article.summary,
+      });
+
+      if (result.success && result.data) {
+        setArticleContent(result.data.content);
+        // Mark as read
+        setContent(prev => prev.map(item =>
+          item.id === article.id ? { ...item, isRead: true } : item
+        ));
+      } else {
+        toast({
+          variant: 'destructive',
+          title: 'Error',
+          description: 'Failed to load article content.',
+        });
+      }
+    } catch {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Failed to load article content.',
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const markAsRead = (id: string) => {
-    setContent(prev => prev.map(item =>
-      item.id === id ? { ...item, isRead: true } : item
-    ));
+    const article = content.find(item => item.id === id);
+    if (article) {
+      openArticle(article);
+    }
   };
 
   const categories = ['Treatment Info', 'Side Effects', 'Myths vs Facts', 'FAQ', 'Recovery Tips'] as const;
@@ -275,6 +324,78 @@ export default function EducationPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Article Reader Dialog */}
+      <Dialog open={readerOpen} onOpenChange={setReaderOpen}>
+        <DialogContent className="sm:max-w-[700px] max-h-[90vh]">
+          <DialogHeader>
+            <div className="flex items-start justify-between">
+              <div>
+                {selectedArticle && (
+                  <Badge className={getCategoryColor(selectedArticle.category)}>
+                    {getCategoryIcon(selectedArticle.category)}
+                    <span className="ml-1">{selectedArticle.category}</span>
+                  </Badge>
+                )}
+                <DialogTitle className="text-xl mt-2">{selectedArticle?.title}</DialogTitle>
+                <DialogDescription className="flex items-center gap-2 mt-1">
+                  <Clock className="h-3 w-3" />
+                  {selectedArticle?.readTime} read
+                </DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
+          
+          <ScrollArea className="h-[60vh] pr-4">
+            {isLoading ? (
+              <div className="flex flex-col items-center justify-center py-20">
+                <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
+                <p className="text-muted-foreground">Generating content with AI...</p>
+              </div>
+            ) : (
+              <div className="prose prose-sm dark:prose-invert max-w-none">
+                {articleContent.split('\n').map((paragraph, idx) => {
+                  if (paragraph.startsWith('### ')) {
+                    return <h3 key={idx} className="text-lg font-semibold mt-4 mb-2">{paragraph.replace('### ', '')}</h3>;
+                  }
+                  if (paragraph.startsWith('## ')) {
+                    return <h2 key={idx} className="text-xl font-bold mt-6 mb-3">{paragraph.replace('## ', '')}</h2>;
+                  }
+                  if (paragraph.startsWith('- ')) {
+                    return <li key={idx} className="ml-4">{paragraph.replace('- ', '')}</li>;
+                  }
+                  if (paragraph.startsWith('*') && paragraph.endsWith('*')) {
+                    return <p key={idx} className="text-sm italic text-muted-foreground mt-4">{paragraph.replace(/\*/g, '')}</p>;
+                  }
+                  if (paragraph.trim()) {
+                    // Handle bold text
+                    const parts = paragraph.split(/\*\*(.*?)\*\*/g);
+                    return (
+                      <p key={idx} className="mb-3">
+                        {parts.map((part, i) => 
+                          i % 2 === 1 ? <strong key={i}>{part}</strong> : part
+                        )}
+                      </p>
+                    );
+                  }
+                  return null;
+                })}
+              </div>
+            )}
+          </ScrollArea>
+
+          <div className="flex justify-end gap-2 pt-4 border-t">
+            <Button variant="outline" onClick={() => setReaderOpen(false)}>
+              <X className="mr-2 h-4 w-4" />
+              Close
+            </Button>
+            <Badge variant="outline" className="text-green-600 self-center">
+              <CheckCircle2 className="mr-1 h-3 w-3" />
+              Marked as Read
+            </Badge>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

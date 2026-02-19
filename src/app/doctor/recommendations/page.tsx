@@ -10,7 +10,16 @@ import {
 } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import {
   Brain,
   CheckCircle2,
@@ -20,8 +29,10 @@ import {
   AlertTriangle,
   ChevronRight,
   Filter,
+  Undo2,
 } from 'lucide-react';
 import Link from 'next/link';
+import { useToast } from '@/hooks/use-toast';
 import {
   mockAIRecommendations,
   mockPatientRiskProfiles,
@@ -32,6 +43,10 @@ import {
 export default function AIRecommendationsPage() {
   const [recommendations, setRecommendations] = useState(mockAIRecommendations);
   const [filter, setFilter] = useState<'all' | 'pending' | 'accepted' | 'ignored'>('pending');
+  const [showIgnoreDialog, setShowIgnoreDialog] = useState(false);
+  const [selectedRec, setSelectedRec] = useState<AIRecommendation | null>(null);
+  const [ignoreReason, setIgnoreReason] = useState('');
+  const { toast } = useToast();
 
   const getPatientName = (patientId: string) => {
     const patient = mockPatientRiskProfiles.find(p => p.id === patientId);
@@ -43,16 +58,45 @@ export default function AIRecommendationsPage() {
     return rec.status === filter;
   });
 
-  const handleAccept = (id: string) => {
+  const handleAccept = (rec: AIRecommendation) => {
     setRecommendations(prev => 
-      prev.map(rec => rec.id === id ? { ...rec, status: 'accepted' as const } : rec)
+      prev.map(r => r.id === rec.id ? { ...r, status: 'accepted' as const } : r)
     );
+    toast({
+      title: "Recommendation Accepted",
+      description: `${rec.title} intervention initiated for ${getPatientName(rec.patientId)}`,
+    });
   };
 
-  const handleIgnore = (id: string) => {
+  const openIgnoreDialog = (rec: AIRecommendation) => {
+    setSelectedRec(rec);
+    setIgnoreReason('');
+    setShowIgnoreDialog(true);
+  };
+
+  const confirmIgnore = () => {
+    if (!selectedRec) return;
+    
     setRecommendations(prev => 
-      prev.map(rec => rec.id === id ? { ...rec, status: 'ignored' as const } : rec)
+      prev.map(r => r.id === selectedRec.id ? { ...r, status: 'ignored' as const, ignoreReason } : r)
     );
+    
+    toast({
+      title: "Recommendation Ignored",
+      description: `Decision recorded for ${getPatientName(selectedRec.patientId)}`,
+    });
+    
+    setShowIgnoreDialog(false);
+  };
+
+  const handleUndo = (rec: AIRecommendation) => {
+    setRecommendations(prev => 
+      prev.map(r => r.id === rec.id ? { ...r, status: 'pending' as const, ignoreReason: undefined } : r)
+    );
+    toast({
+      title: "Recommendation Restored",
+      description: `${rec.title} moved back to pending review`,
+    });
   };
 
   const pendingCount = recommendations.filter(r => r.status === 'pending').length;
@@ -228,13 +272,26 @@ export default function AIRecommendationsPage() {
                   </div>
                   {rec.status === 'pending' && (
                     <div className="flex flex-col gap-2">
-                      <Button size="sm" onClick={() => handleAccept(rec.id)}>
+                      <Button size="sm" onClick={() => handleAccept(rec)}>
                         <CheckCircle2 className="h-4 w-4 mr-1" />
                         Accept
                       </Button>
-                      <Button size="sm" variant="outline" onClick={() => handleIgnore(rec.id)}>
+                      <Button size="sm" variant="outline" onClick={() => openIgnoreDialog(rec)}>
                         <XCircle className="h-4 w-4 mr-1" />
                         Ignore
+                      </Button>
+                      <Button size="sm" variant="ghost" asChild>
+                        <Link href={`/doctor/patients/${rec.patientId}`}>
+                          View Patient
+                        </Link>
+                      </Button>
+                    </div>
+                  )}
+                  {rec.status !== 'pending' && (
+                    <div className="flex flex-col gap-2">
+                      <Button size="sm" variant="ghost" onClick={() => handleUndo(rec)}>
+                        <Undo2 className="h-4 w-4 mr-1" />
+                        Undo
                       </Button>
                       <Button size="sm" variant="ghost" asChild>
                         <Link href={`/doctor/patients/${rec.patientId}`}>
@@ -249,6 +306,46 @@ export default function AIRecommendationsPage() {
           ))
         )}
       </div>
+
+      {/* Ignore Dialog */}
+      <Dialog open={showIgnoreDialog} onOpenChange={setShowIgnoreDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Ignore Recommendation</DialogTitle>
+            <DialogDescription>
+              Optionally provide a reason for ignoring this AI recommendation
+            </DialogDescription>
+          </DialogHeader>
+          {selectedRec && (
+            <div className="space-y-4 py-4">
+              <div className="p-3 rounded-lg border bg-muted/50">
+                <p className="font-semibold">{selectedRec.title}</p>
+                <p className="text-sm text-muted-foreground">
+                  Patient: {getPatientName(selectedRec.patientId)}
+                </p>
+              </div>
+              <div className="space-y-2">
+                <Label>Reason for Ignoring (Optional)</Label>
+                <Textarea
+                  placeholder="e.g., Patient already receiving this treatment, Not applicable, etc."
+                  value={ignoreReason}
+                  onChange={(e) => setIgnoreReason(e.target.value)}
+                  rows={3}
+                />
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowIgnoreDialog(false)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={confirmIgnore}>
+              <XCircle className="h-4 w-4 mr-2" />
+              Ignore Recommendation
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

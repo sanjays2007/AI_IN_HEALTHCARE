@@ -38,8 +38,12 @@ import {
   RefreshCw,
   Plus,
 } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
   mockFollowUps,
+  mockPatientAssignments,
   getPriorityColor,
   getFollowUpStatusColor,
   FollowUp,
@@ -50,7 +54,13 @@ export default function FollowUpsPage() {
   const [priorityFilter, setPriorityFilter] = useState<string>('all');
   const [selectedFollowUp, setSelectedFollowUp] = useState<FollowUp | null>(null);
   const [showCompleteDialog, setShowCompleteDialog] = useState(false);
+  const [showRescheduleDialog, setShowRescheduleDialog] = useState(false);
+  const [showNewDialog, setShowNewDialog] = useState(false);
   const [notes, setNotes] = useState('');
+  const [rescheduleDate, setRescheduleDate] = useState('');
+  const [rescheduleTime, setRescheduleTime] = useState('');
+  const [newFollowUp, setNewFollowUp] = useState({ patientId: '', reason: '', type: 'phone' as const, priority: 'medium' as const, date: '', time: '' });
+  const { toast } = useToast();
 
   const filteredFollowUps = followUps.filter(f => 
     priorityFilter === 'all' || f.priority === priorityFilter
@@ -66,10 +76,62 @@ export default function FollowUpsPage() {
           ? { ...f, status: 'completed', notes: notes || f.notes }
           : f
       ));
+      toast({
+        title: "Follow-up Completed",
+        description: `Follow-up for ${selectedFollowUp.patientName} marked as completed`,
+      });
       setShowCompleteDialog(false);
       setSelectedFollowUp(null);
       setNotes('');
     }
+  };
+
+  const handleReschedule = () => {
+    if (selectedFollowUp && rescheduleDate) {
+      setFollowUps(followUps.map(f => 
+        f.id === selectedFollowUp.id 
+          ? { ...f, scheduledDate: rescheduleDate, scheduledTime: rescheduleTime || f.scheduledTime }
+          : f
+      ));
+      toast({
+        title: "Follow-up Rescheduled",
+        description: `Rescheduled for ${rescheduleDate}`,
+      });
+      setShowRescheduleDialog(false);
+      setRescheduleDate('');
+      setRescheduleTime('');
+    }
+  };
+
+  const handleCallNow = (followUp: FollowUp) => {
+    toast({
+      title: "Calling Patient",
+      description: `Initiating call to ${followUp.patientName}...`,
+    });
+  };
+
+  const handleCreateFollowUp = () => {
+    const patient = mockPatientAssignments.find(p => p.patientId === newFollowUp.patientId);
+    if (!patient || !newFollowUp.reason || !newFollowUp.date) {
+      toast({ variant: "destructive", title: "Please fill all required fields" });
+      return;
+    }
+    const newFU: FollowUp = {
+      id: String(Date.now()),
+      patientId: newFollowUp.patientId,
+      patientName: patient.patientName,
+      type: newFollowUp.type,
+      priority: newFollowUp.priority,
+      reason: newFollowUp.reason,
+      scheduledDate: newFollowUp.date,
+      scheduledTime: newFollowUp.time || '09:00',
+      status: 'pending',
+      notes: '',
+    };
+    setFollowUps([newFU, ...followUps]);
+    toast({ title: "Follow-up Scheduled", description: `Follow-up created for ${patient.patientName}` });
+    setShowNewDialog(false);
+    setNewFollowUp({ patientId: '', reason: '', type: 'phone', priority: 'medium', date: '', time: '' });
   };
 
   const getTypeIcon = (type: string) => {
@@ -93,7 +155,7 @@ export default function FollowUpsPage() {
             Manage your scheduled patient follow-ups
           </p>
         </div>
-        <Button className="bg-teal-600 hover:bg-teal-700">
+        <Button className="bg-teal-600 hover:bg-teal-700" onClick={() => setShowNewDialog(true)}>
           <Plus className="h-4 w-4 mr-2" />
           Schedule Follow-up
         </Button>
@@ -219,12 +281,12 @@ export default function FollowUpsPage() {
                         <CheckCircle2 className="h-4 w-4 mr-1" />
                         Complete
                       </Button>
-                      <Button size="sm" variant="outline">
+                      <Button size="sm" variant="outline" onClick={() => { setSelectedFollowUp(followUp); setShowRescheduleDialog(true); }}>
                         <RefreshCw className="h-4 w-4 mr-1" />
                         Reschedule
                       </Button>
                       {followUp.type === 'phone' && (
-                        <Button size="sm" variant="outline">
+                        <Button size="sm" variant="outline" onClick={() => handleCallNow(followUp)}>
                           <Phone className="h-4 w-4 mr-1" />
                           Call Now
                         </Button>
@@ -315,6 +377,96 @@ export default function FollowUpsPage() {
               <CheckCircle2 className="h-4 w-4 mr-2" />
               Mark Complete
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Reschedule Dialog */}
+      <Dialog open={showRescheduleDialog} onOpenChange={setShowRescheduleDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Reschedule Follow-up</DialogTitle>
+            <DialogDescription>Select new date and time for {selectedFollowUp?.patientName}</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Date*</Label>
+                <Input type="date" value={rescheduleDate} onChange={(e) => setRescheduleDate(e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label>Time</Label>
+                <Input type="time" value={rescheduleTime} onChange={(e) => setRescheduleTime(e.target.value)} />
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowRescheduleDialog(false)}>Cancel</Button>
+            <Button onClick={handleReschedule}>Reschedule</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* New Follow-up Dialog */}
+      <Dialog open={showNewDialog} onOpenChange={setShowNewDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Schedule New Follow-up</DialogTitle>
+            <DialogDescription>Create a new patient follow-up</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Patient*</Label>
+              <Select value={newFollowUp.patientId} onValueChange={(v) => setNewFollowUp({ ...newFollowUp, patientId: v })}>
+                <SelectTrigger><SelectValue placeholder="Select patient" /></SelectTrigger>
+                <SelectContent>
+                  {mockPatientAssignments.map(p => <SelectItem key={p.patientId} value={p.patientId}>{p.patientName}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Type</Label>
+                <Select value={newFollowUp.type} onValueChange={(v: any) => setNewFollowUp({ ...newFollowUp, type: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="phone">Phone</SelectItem>
+                    <SelectItem value="visit">Visit</SelectItem>
+                    <SelectItem value="message">Message</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Priority</Label>
+                <Select value={newFollowUp.priority} onValueChange={(v: any) => setNewFollowUp({ ...newFollowUp, priority: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="urgent">Urgent</SelectItem>
+                    <SelectItem value="high">High</SelectItem>
+                    <SelectItem value="medium">Medium</SelectItem>
+                    <SelectItem value="low">Low</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Date*</Label>
+                <Input type="date" value={newFollowUp.date} onChange={(e) => setNewFollowUp({ ...newFollowUp, date: e.target.value })} />
+              </div>
+              <div className="space-y-2">
+                <Label>Time</Label>
+                <Input type="time" value={newFollowUp.time} onChange={(e) => setNewFollowUp({ ...newFollowUp, time: e.target.value })} />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Reason*</Label>
+              <Textarea placeholder="Reason for follow-up..." value={newFollowUp.reason} onChange={(e) => setNewFollowUp({ ...newFollowUp, reason: e.target.value })} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowNewDialog(false)}>Cancel</Button>
+            <Button onClick={handleCreateFollowUp} className="bg-teal-600 hover:bg-teal-700">Schedule</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

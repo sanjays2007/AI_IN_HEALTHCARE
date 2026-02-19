@@ -114,3 +114,115 @@ export async function generateFinancialAssistanceAction(input: FinancialAssistan
     return { success: false, error: 'Failed to generate guidance. Please try again.' };
   }
 }
+
+export async function generateArticleContentAction(input: { title: string; category: string; summary: string }) {
+  try {
+    const apiKey = process.env.GOOGLE_GENAI_API_KEY;
+    
+    if (!apiKey || apiKey === 'your_api_key_here') {
+      // Return fallback content if no API key
+      return {
+        success: true,
+        data: {
+          content: generateFallbackContent(input.title, input.category, input.summary),
+        },
+      };
+    }
+
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{
+            parts: [{
+              text: `You are a healthcare education content writer. Generate a detailed, patient-friendly article based on the following:
+
+Title: ${input.title}
+Category: ${input.category}
+Summary: ${input.summary}
+
+Requirements:
+- Write in clear, simple language that patients can understand
+- Include practical tips and actionable advice
+- Be empathetic and supportive in tone
+- Structure with headings using markdown (##, ###)
+- Include key takeaways at the end
+- Keep the content accurate and medically sound
+- Length: 400-600 words
+
+Generate the full article content now:`
+            }],
+          }],
+          generationConfig: {
+            temperature: 0.7,
+            maxOutputTokens: 1024,
+          },
+        }),
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error('Gemini API request failed');
+    }
+
+    const data = await response.json();
+    const content = data.candidates?.[0]?.content?.parts?.[0]?.text || generateFallbackContent(input.title, input.category, input.summary);
+
+    return { success: true, data: { content } };
+  } catch (error) {
+    console.error('Error generating article content:', error);
+    return {
+      success: true,
+      data: {
+        content: generateFallbackContent(input.title, input.category, input.summary),
+      },
+    };
+  }
+}
+
+function generateFallbackContent(title: string, category: string, summary: string): string {
+  return `## ${title}
+
+${summary}
+
+### Understanding the Basics
+
+${category} is an important aspect of your overall health. Taking time to understand and manage it properly can significantly improve your quality of life.
+
+### Key Points to Remember
+
+1. **Stay Consistent**: Whether it's medication, exercise, or dietary changes, consistency is key to seeing results.
+
+2. **Communicate with Your Healthcare Team**: Don't hesitate to ask questions or report any concerns. Your healthcare providers are here to help.
+
+3. **Monitor Your Progress**: Keep track of your symptoms, medications, and any changes you notice. This information helps your care team make better decisions.
+
+4. **Take Care of Your Mental Health**: Managing a health condition can be stressful. It's okay to seek support when you need it.
+
+### Practical Tips
+
+- Set reminders for medications and appointments
+- Keep a health journal to track your symptoms
+- Stay hydrated and maintain a balanced diet
+- Get adequate rest and sleep
+- Don't skip scheduled check-ups
+
+### When to Seek Help
+
+Contact your healthcare provider if you experience:
+- New or worsening symptoms
+- Side effects from medications
+- Questions about your treatment plan
+- Emotional distress related to your condition
+
+### Key Takeaways
+
+- Knowledge is power – understanding your condition helps you manage it better
+- You're not alone – your healthcare team and support system are here for you
+- Small, consistent changes lead to big improvements over time
+- Always follow your prescribed treatment plan
+
+*Remember: This information is for educational purposes. Always consult with your healthcare provider for personalized medical advice.*`;
+}

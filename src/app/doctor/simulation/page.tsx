@@ -11,6 +11,8 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
@@ -18,6 +20,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import {
   Beaker,
   Play,
@@ -28,7 +38,9 @@ import {
   CheckCircle2,
   ArrowRight,
   RefreshCw,
+  Zap,
 } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 import {
   mockPatientRiskProfiles,
   mockPredictiveScenarios,
@@ -41,6 +53,10 @@ export default function PredictiveSimulationPage() {
   const [isSimulating, setIsSimulating] = useState(false);
   const [simulationResults, setSimulationResults] = useState<PredictiveScenario[]>([]);
   const [selectedScenario, setSelectedScenario] = useState<PredictiveScenario | null>(null);
+  const [showApplyDialog, setShowApplyDialog] = useState(false);
+  const [applyNotes, setApplyNotes] = useState('');
+  const [appliedInterventions, setAppliedInterventions] = useState<string[]>([]);
+  const { toast } = useToast();
 
   const highRiskPatients = mockPatientRiskProfiles.filter(p => 
     p.riskCategory === 'high' || p.riskCategory === 'critical'
@@ -67,6 +83,29 @@ export default function PredictiveSimulationPage() {
     return simulationResults
       .filter(s => s.intervention !== 'No Intervention')
       .sort((a, b) => b.riskReduction - a.riskReduction)[0];
+  };
+
+  const handleApplyIntervention = (scenario: PredictiveScenario) => {
+    setSelectedScenario(scenario);
+    setApplyNotes('');
+    setShowApplyDialog(true);
+  };
+
+  const confirmApplyIntervention = () => {
+    if (!selectedScenario || !patient) return;
+
+    setAppliedInterventions(prev => [...prev, `${patient.id}-${selectedScenario.intervention}`]);
+
+    toast({
+      title: "Intervention Applied",
+      description: `${selectedScenario.intervention} has been initiated for ${patient.name}. Expected risk reduction: ${selectedScenario.riskReduction}%`,
+    });
+
+    setShowApplyDialog(false);
+  };
+
+  const isInterventionApplied = (scenario: PredictiveScenario) => {
+    return appliedInterventions.includes(`${selectedPatient}-${scenario.intervention}`);
   };
 
   const bestScenario = getBestScenario();
@@ -224,6 +263,22 @@ export default function PredictiveSimulationPage() {
                     </p>
                   </div>
                 </div>
+                <div className="mt-4 pt-4 border-t">
+                  {isInterventionApplied(bestScenario) ? (
+                    <Button disabled className="w-full">
+                      <CheckCircle2 className="h-4 w-4 mr-2" />
+                      Intervention Applied
+                    </Button>
+                  ) : (
+                    <Button 
+                      className="w-full bg-green-600 hover:bg-green-700"
+                      onClick={() => handleApplyIntervention(bestScenario)}
+                    >
+                      <Zap className="h-4 w-4 mr-2" />
+                      Apply This Intervention
+                    </Button>
+                  )}
+                </div>
               </CardContent>
             </Card>
           )}
@@ -316,6 +371,29 @@ export default function PredictiveSimulationPage() {
                     <p className="text-xs text-muted-foreground mt-2">
                       Time to effect: {scenario.timeToEffect}
                     </p>
+
+                    {scenario.intervention !== 'No Intervention' && (
+                      <div className="mt-3 pt-3 border-t">
+                        {isInterventionApplied(scenario) ? (
+                          <Badge className="bg-green-600">
+                            <CheckCircle2 className="h-3 w-3 mr-1" />
+                            Applied
+                          </Badge>
+                        ) : (
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleApplyIntervention(scenario);
+                            }}
+                          >
+                            <Zap className="h-3 w-3 mr-1" />
+                            Apply Intervention
+                          </Button>
+                        )}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -350,6 +428,58 @@ export default function PredictiveSimulationPage() {
           </CardContent>
         </Card>
       )}
+
+      {/* Apply Intervention Dialog */}
+      <Dialog open={showApplyDialog} onOpenChange={setShowApplyDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Apply Intervention</DialogTitle>
+            <DialogDescription>
+              Confirm applying this intervention for the patient
+            </DialogDescription>
+          </DialogHeader>
+          {selectedScenario && patient && (
+            <div className="space-y-4 py-4">
+              <div className="p-4 rounded-lg border bg-muted/50">
+                <p className="text-sm text-muted-foreground">Patient</p>
+                <p className="font-semibold text-lg">{patient.name}</p>
+              </div>
+              <div className="p-4 rounded-lg border bg-green-50 dark:bg-green-900/20">
+                <p className="text-sm text-muted-foreground">Intervention</p>
+                <p className="font-semibold text-lg">{selectedScenario.intervention}</p>
+                <div className="flex items-center gap-4 mt-2 text-sm">
+                  <span>Risk: {selectedScenario.currentRisk}% → {selectedScenario.projectedRisk}%</span>
+                  <Badge variant="secondary" className="text-green-600">
+                    <TrendingDown className="h-3 w-3 mr-1" />
+                    -{selectedScenario.riskReduction}%
+                  </Badge>
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Time to effect: {selectedScenario.timeToEffect} • Confidence: {selectedScenario.confidence}%
+                </p>
+              </div>
+              <div className="space-y-2">
+                <Label>Notes (Optional)</Label>
+                <Textarea
+                  placeholder="Add any notes about this intervention..."
+                  value={applyNotes}
+                  onChange={(e) => setApplyNotes(e.target.value)}
+                  rows={3}
+                />
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowApplyDialog(false)}>
+              Cancel
+            </Button>
+            <Button onClick={confirmApplyIntervention} className="bg-green-600 hover:bg-green-700">
+              <Zap className="h-4 w-4 mr-2" />
+              Apply Intervention
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

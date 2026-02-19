@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import {
   Card,
   CardContent,
@@ -10,6 +11,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
+import { useToast } from '@/hooks/use-toast';
 import {
   CalendarCheck,
   Pill,
@@ -19,6 +21,11 @@ import {
   Clock,
   FileText,
   ChevronRight,
+  Sun,
+  Sunset,
+  Moon,
+  Coffee,
+  CheckCircle2,
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -39,11 +46,22 @@ const upcomingAppointments = [
   { id: '2', type: 'Lab Work', doctor: 'Lab', date: '2026-03-01', time: '9:00 AM' },
 ];
 
-const medications = [
-  { id: '1', name: 'Metformin', dosage: '500mg', frequency: 'Twice daily', nextDose: '6:00 PM', taken: true },
-  { id: '2', name: 'Lisinopril', dosage: '10mg', frequency: 'Once daily', nextDose: '8:00 AM', taken: true },
-  { id: '3', name: 'Aspirin', dosage: '81mg', frequency: 'Once daily', nextDose: '8:00 AM', taken: true },
-  { id: '4', name: 'Vitamin D', dosage: '1000IU', frequency: 'Once daily', nextDose: '8:00 AM', taken: false },
+interface Medication {
+  id: string;
+  name: string;
+  dosage: string;
+  frequency: string;
+  timing: 'morning-before' | 'morning-after' | 'afternoon' | 'night';
+  timingLabel: string;
+  scheduledTime: string;
+  taken: boolean;
+}
+
+const initialMedications: Medication[] = [
+  { id: '1', name: 'Metformin', dosage: '500mg', frequency: 'Twice daily', timing: 'morning-after', timingLabel: 'After Breakfast', scheduledTime: '8:30 AM', taken: false },
+  { id: '2', name: 'Lisinopril', dosage: '10mg', frequency: 'Once daily', timing: 'morning-before', timingLabel: 'Before Breakfast', scheduledTime: '7:00 AM', taken: false },
+  { id: '3', name: 'Aspirin', dosage: '81mg', frequency: 'Once daily', timing: 'afternoon', timingLabel: 'After Lunch', scheduledTime: '1:00 PM', taken: false },
+  { id: '4', name: 'Vitamin D', dosage: '1000IU', frequency: 'Once daily', timing: 'night', timingLabel: 'After Dinner', scheduledTime: '8:00 PM', taken: false },
 ];
 
 const recentAlerts = [
@@ -51,9 +69,68 @@ const recentAlerts = [
   { id: '2', message: 'Complete your weekly mood check-in', type: 'reminder' },
 ];
 
+const getTimingIcon = (timing: string) => {
+  switch (timing) {
+    case 'morning-before':
+    case 'morning-after':
+      return <Sun className="h-4 w-4 text-yellow-500" />;
+    case 'afternoon':
+      return <Sunset className="h-4 w-4 text-orange-500" />;
+    case 'night':
+      return <Moon className="h-4 w-4 text-indigo-500" />;
+    default:
+      return <Clock className="h-4 w-4" />;
+  }
+};
+
+const getTimingColor = (timing: string) => {
+  switch (timing) {
+    case 'morning-before':
+    case 'morning-after':
+      return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-100';
+    case 'afternoon':
+      return 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-100';
+    case 'night':
+      return 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-100';
+    default:
+      return '';
+  }
+};
+
 export default function PatientDashboardPage() {
+  const [medications, setMedications] = useState<Medication[]>(initialMedications);
+  const { toast } = useToast();
+  
   const takenMeds = medications.filter(m => m.taken).length;
   const adherencePercent = Math.round((takenMeds / medications.length) * 100);
+
+  const handleTakeMedication = (id: string) => {
+    setMedications(prev => prev.map(med => 
+      med.id === id ? { ...med, taken: true } : med
+    ));
+    
+    const med = medications.find(m => m.id === id);
+    toast({
+      title: "Medication Taken",
+      description: `${med?.name} ${med?.dosage} marked as taken.`,
+    });
+  };
+
+  // Get current time-based reminder
+  const getCurrentReminder = () => {
+    const hour = new Date().getHours();
+    if (hour >= 5 && hour < 9) {
+      return { message: "Good morning! Time for your morning medications", timing: 'morning' };
+    } else if (hour >= 12 && hour < 14) {
+      return { message: "Lunch time! Don't forget your afternoon dose", timing: 'afternoon' };
+    } else if (hour >= 19 && hour < 22) {
+      return { message: "Evening reminder: Take your night medications", timing: 'night' };
+    }
+    return null;
+  };
+
+  const currentReminder = getCurrentReminder();
+  const pendingMeds = medications.filter(m => !m.taken);
 
   return (
     <div className="space-y-6">
@@ -64,6 +141,26 @@ export default function PatientDashboardPage() {
           Here&apos;s an overview of your health journey
         </p>
       </div>
+
+      {/* Medication Reminder Alert */}
+      {pendingMeds.length > 0 && (
+        <Card className="border-orange-200 bg-orange-50 dark:border-orange-900 dark:bg-orange-950">
+          <CardContent className="flex items-center gap-4 py-4">
+            <div className="rounded-full bg-orange-100 p-2 dark:bg-orange-900">
+              <AlertTriangle className="h-5 w-5 text-orange-600" />
+            </div>
+            <div className="flex-1">
+              <p className="font-medium">Medication Reminder</p>
+              <p className="text-sm text-muted-foreground">
+                You have {pendingMeds.length} medication{pendingMeds.length > 1 ? 's' : ''} pending for today
+              </p>
+            </div>
+            <Button size="sm" variant="outline" asChild>
+              <Link href="#medications">View Schedule</Link>
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Summary Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -123,7 +220,7 @@ export default function PatientDashboardPage() {
       {/* Main Content Grid */}
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Medications */}
-        <Card>
+        <Card id="medications">
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
               <CardTitle>Today&apos;s Medications</CardTitle>
@@ -140,18 +237,47 @@ export default function PatientDashboardPage() {
               {medications.map((med) => (
                 <div
                   key={med.id}
-                  className="flex items-center justify-between p-3 rounded-lg bg-muted/50"
+                  className={`p-4 rounded-lg border ${
+                    med.taken 
+                      ? 'bg-green-50 border-green-200 dark:bg-green-950 dark:border-green-900' 
+                      : 'bg-muted/50'
+                  }`}
                 >
-                  <div className="flex items-center gap-3">
-                    <div className={`h-3 w-3 rounded-full ${med.taken ? 'bg-green-500' : 'bg-orange-400'}`} />
-                    <div>
-                      <p className="font-medium">{med.name}</p>
-                      <p className="text-xs text-muted-foreground">{med.dosage} - {med.frequency}</p>
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-3">
+                      <div className={`h-3 w-3 rounded-full ${med.taken ? 'bg-green-500' : 'bg-orange-400'}`} />
+                      <div>
+                        <p className="font-medium">{med.name}</p>
+                        <p className="text-xs text-muted-foreground">{med.dosage} - {med.frequency}</p>
+                      </div>
                     </div>
+                    {med.taken ? (
+                      <Badge variant="default" className="bg-green-600">
+                        <CheckCircle2 className="h-3 w-3 mr-1" />
+                        Taken
+                      </Badge>
+                    ) : (
+                      <Button 
+                        size="sm" 
+                        onClick={() => handleTakeMedication(med.id)}
+                        className="bg-primary hover:bg-primary/90"
+                      >
+                        <CheckCircle2 className="h-4 w-4 mr-1" />
+                        Mark as Taken
+                      </Button>
+                    )}
                   </div>
-                  <Badge variant={med.taken ? 'default' : 'outline'}>
-                    {med.taken ? 'Taken' : 'Pending'}
-                  </Badge>
+                  {/* Timing Reminder */}
+                  <div className="flex items-center gap-2 mt-2 pt-2 border-t border-dashed">
+                    {getTimingIcon(med.timing)}
+                    <Badge variant="secondary" className={getTimingColor(med.timing)}>
+                      {med.timingLabel}
+                    </Badge>
+                    <span className="text-xs text-muted-foreground flex items-center gap-1">
+                      <Clock className="h-3 w-3" />
+                      {med.scheduledTime}
+                    </span>
+                  </div>
                 </div>
               ))}
             </div>

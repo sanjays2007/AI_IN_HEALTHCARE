@@ -27,8 +27,10 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { mockBudgetCategories, formatCurrency } from '@/lib/finance-data';
+import { useToast } from '@/hooks/use-toast';
 
 export default function FinanceReportsPage() {
+  const { toast } = useToast();
   const [reportPeriod, setReportPeriod] = useState('this-month');
   const [reportType, setReportType] = useState('summary');
 
@@ -81,7 +83,7 @@ export default function FinanceReportsPage() {
               <SelectItem value="this-year">This Year</SelectItem>
             </SelectContent>
           </Select>
-          <Button variant="outline">
+          <Button variant="outline" onClick={() => toast({ title: 'Exporting Report', description: 'Preparing financial report for download...' })}>
             <Download className="h-4 w-4 mr-2" />
             Export Report
           </Button>
@@ -475,6 +477,7 @@ export default function FinanceReportsPage() {
                 key={report.name}
                 variant="outline"
                 className="h-auto py-4 flex-col justify-center"
+                onClick={() => toast({ title: 'Downloading Report', description: `${report.name} is being prepared for download.` })}
               >
                 <report.icon className="h-6 w-6 mb-2 text-emerald-600" />
                 <span className="text-sm">{report.name}</span>

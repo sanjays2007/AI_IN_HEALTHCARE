@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useToast } from '@/hooks/use-toast';
 import {
   Card,
   CardContent,
@@ -38,7 +39,36 @@ import {
 import { mockPolicyPrograms, getStatusBadgeVariant, formatCurrency } from '@/lib/admin-data';
 
 export default function PoliciesPage() {
+  const { toast } = useToast();
   const [programs] = useState(mockPolicyPrograms);
+
+  const handleCreateProgram = () => {
+    toast({
+      title: 'Create Program',
+      description: 'Opening program creation wizard...',
+    });
+  };
+
+  const handleProgramSettings = (name: string) => {
+    toast({
+      title: 'Program Settings',
+      description: `Opening settings for ${name}`,
+    });
+  };
+
+  const handlePauseProgram = (name: string) => {
+    toast({
+      title: 'Program Paused',
+      description: `${name} has been paused.`,
+    });
+  };
+
+  const handleLaunchProgram = (name: string) => {
+    toast({
+      title: 'Program Launched',
+      description: `${name} is now active.`,
+    });
+  };
 
   const activePrograms = programs.filter(p => p.status === 'active').length;
   const totalBudget = programs.reduce((sum, p) => sum + p.budget, 0);
@@ -58,7 +88,7 @@ export default function PoliciesPage() {
             Manage dropout prevention programs, campaigns, and support initiatives
           </p>
         </div>
-        <Button className="bg-purple-600 hover:bg-purple-700">
+        <Button className="bg-purple-600 hover:bg-purple-700" onClick={handleCreateProgram}>
           <Plus className="h-4 w-4 mr-2" />
           Create New Program
         </Button>
@@ -173,10 +203,10 @@ export default function PoliciesPage() {
                       {program.startDate} - {program.endDate}
                     </div>
                     <div className="flex gap-2">
-                      <Button size="sm" variant="ghost">
+                      <Button size="sm" variant="ghost" onClick={() => handleProgramSettings(program.name)}>
                         <Settings className="h-4 w-4" />
                       </Button>
-                      <Button size="sm" variant="ghost">
+                      <Button size="sm" variant="ghost" onClick={() => handlePauseProgram(program.name)}>
                         <Pause className="h-4 w-4" />
                       </Button>
                     </div>
@@ -229,7 +259,7 @@ export default function PoliciesPage() {
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        <Button size="sm" variant="outline">
+                        <Button size="sm" variant="outline" onClick={() => handleLaunchProgram(program.name)}>
                           <Play className="h-4 w-4 mr-1" />
                           Launch
                         </Button>

@@ -27,9 +27,11 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useAuth } from '@/contexts/auth-context';
+import { useToast } from '@/hooks/use-toast';
 
 export default function FinanceSettingsPage() {
   const { user } = useAuth();
+  const { toast } = useToast();
   const [isSaving, setIsSaving] = useState(false);
 
   // Profile settings
@@ -56,6 +58,10 @@ export default function FinanceSettingsPage() {
     setIsSaving(true);
     setTimeout(() => {
       setIsSaving(false);
+      toast({
+        title: 'Settings Saved',
+        description: 'Your preferences have been updated successfully.',
+      });
     }, 1000);
   };
 
@@ -403,7 +409,7 @@ export default function FinanceSettingsPage() {
                     <Input id="confirm-password" type="password" />
                   </div>
                 </div>
-                <Button variant="outline">
+                <Button variant="outline" onClick={() => toast({ title: 'Password Updated', description: 'Your password has been changed successfully.' })}>
                   <Lock className="h-4 w-4 mr-2" />
                   Update Password
                 </Button>
@@ -424,7 +430,7 @@ export default function FinanceSettingsPage() {
                       </p>
                     </div>
                   </div>
-                  <Button className="bg-emerald-600 hover:bg-emerald-700">Enable 2FA</Button>
+                  <Button className="bg-emerald-600 hover:bg-emerald-700" onClick={() => toast({ title: 'Two-Factor Authentication', description: 'Setup wizard will guide you through enabling 2FA.' })}>Enable 2FA</Button>
                 </div>
               </div>
 

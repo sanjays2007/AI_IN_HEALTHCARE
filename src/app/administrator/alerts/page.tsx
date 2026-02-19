@@ -36,8 +36,10 @@ import {
   getAlertPriorityBadge,
   SystemAlert,
 } from '@/lib/admin-data';
+import { useToast } from '@/hooks/use-toast';
 
 export default function AlertsPage() {
+  const { toast } = useToast();
   const [alerts, setAlerts] = useState<SystemAlert[]>(mockSystemAlerts);
   const [filter, setFilter] = useState<string>('all');
   const [priorityFilter, setPriorityFilter] = useState<string>('all');
@@ -55,14 +57,26 @@ export default function AlertsPage() {
 
   const markAsRead = (id: string) => {
     setAlerts(alerts.map(a => a.id === id ? { ...a, isRead: true } : a));
+    toast({
+      title: 'Alert Read',
+      description: 'Alert has been marked as read.',
+    });
   };
 
   const markAllAsRead = () => {
     setAlerts(alerts.map(a => ({ ...a, isRead: true })));
+    toast({
+      title: 'All Alerts Read',
+      description: 'All alerts have been marked as read.',
+    });
   };
 
   const deleteAlert = (id: string) => {
     setAlerts(alerts.filter(a => a.id !== id));
+    toast({
+      title: 'Alert Deleted',
+      description: 'Alert has been removed.',
+    });
   };
 
   const getAlertIcon = (type: SystemAlert['type']) => {

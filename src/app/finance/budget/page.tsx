@@ -34,9 +34,12 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { mockBudgetCategories, formatCurrency, BudgetCategory } from '@/lib/finance-data';
+import { useToast } from '@/hooks/use-toast';
 
 export default function FinanceBudgetPage() {
+  const { toast } = useToast();
   const [showEditDialog, setShowEditDialog] = useState(false);
+  const [showAddDialog, setShowAddDialog] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<BudgetCategory | null>(null);
 
   // Calculate totals
@@ -67,7 +70,7 @@ export default function FinanceBudgetPage() {
           <h1 className="text-2xl font-bold text-gray-900">Budget Management</h1>
           <p className="text-muted-foreground">Track and manage financial aid budget allocation</p>
         </div>
-        <Button className="bg-emerald-600 hover:bg-emerald-700">
+        <Button onClick={() => setShowAddDialog(true)} className="bg-emerald-600 hover:bg-emerald-700">
           <Plus className="h-4 w-4 mr-2" />
           Add Category
         </Button>
@@ -287,7 +290,12 @@ export default function FinanceBudgetPage() {
                         </p>
                       </div>
                     </div>
-                    <Button variant="outline" size="sm">
+                    <Button variant="outline" size="sm" onClick={() => {
+                      toast({
+                        title: 'Budget Review',
+                        description: `Reviewing ${category.category} budget allocation.`,
+                      });
+                    }}>
                       Review
                     </Button>
                   </div>
@@ -344,10 +352,46 @@ export default function FinanceBudgetPage() {
             </Button>
             <Button
               className="bg-emerald-600 hover:bg-emerald-700"
-              onClick={() => setShowEditDialog(false)}
+              onClick={() => {
+                setShowEditDialog(false);
+                toast({
+                  title: 'Budget Updated',
+                  description: `${selectedCategory?.category} budget has been updated successfully.`,
+                });
+              }}
             >
               Save Changes
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Add Category Dialog */}
+      <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add Budget Category</DialogTitle>
+            <DialogDescription>Create a new budget category for financial aid</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Category Name</Label>
+              <Input placeholder="Enter category name" />
+            </div>
+            <div className="space-y-2">
+              <Label>Allocated Budget (₹)</Label>
+              <Input type="number" placeholder="Enter amount" />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowAddDialog(false)}>Cancel</Button>
+            <Button className="bg-emerald-600 hover:bg-emerald-700" onClick={() => {
+              setShowAddDialog(false);
+              toast({
+                title: 'Category Added',
+                description: 'New budget category has been created successfully.',
+              });
+            }}>Add Category</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

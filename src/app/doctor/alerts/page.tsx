@@ -11,6 +11,8 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
@@ -18,6 +20,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import {
   Bell,
   AlertTriangle,
@@ -31,8 +41,10 @@ import {
   ChevronRight,
   Filter,
   Check,
+  ClipboardList,
 } from 'lucide-react';
 import Link from 'next/link';
+import { useToast } from '@/hooks/use-toast';
 import {
   mockDoctorAlerts,
   DoctorAlert,
@@ -44,6 +56,11 @@ export default function DoctorAlertsPage() {
   const [alerts, setAlerts] = useState(mockDoctorAlerts);
   const [priorityFilter, setPriorityFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('unread');
+  const [showActionDialog, setShowActionDialog] = useState(false);
+  const [selectedAlert, setSelectedAlert] = useState<DoctorAlert | null>(null);
+  const [actionType, setActionType] = useState('');
+  const [actionNotes, setActionNotes] = useState('');
+  const { toast } = useToast();
 
   const getAlertIcon = (type: DoctorAlert['type']) => {
     switch (type) {
@@ -71,6 +88,33 @@ export default function DoctorAlertsPage() {
 
   const markAllAsRead = () => {
     setAlerts(prev => prev.map(a => ({ ...a, isRead: true })));
+  };
+
+  const handleTakeAction = (alert: DoctorAlert) => {
+    setSelectedAlert(alert);
+    setActionType('');
+    setActionNotes('');
+    setShowActionDialog(true);
+  };
+
+  const submitAction = () => {
+    if (!actionType) {
+      toast({ variant: "destructive", title: "Please select an action type" });
+      return;
+    }
+
+    setAlerts(prev => prev.map(a => 
+      a.id === selectedAlert?.id 
+        ? { ...a, actionTaken: actionType + (actionNotes ? `: ${actionNotes}` : ''), isRead: true }
+        : a
+    ));
+
+    toast({
+      title: "Action Recorded",
+      description: `${actionType} has been recorded for ${selectedAlert?.patientName}`,
+    });
+
+    setShowActionDialog(false);
   };
 
   const unreadCount = alerts.filter(a => !a.isRead).length;
@@ -272,6 +316,16 @@ export default function DoctorAlertsPage() {
                   </div>
 
                   <div className="flex flex-col gap-2">
+                    {alert.actionRequired && !alert.actionTaken && (
+                      <Button 
+                        size="sm" 
+                        variant="default"
+                        onClick={() => handleTakeAction(alert)}
+                      >
+                        <ClipboardList className="h-4 w-4 mr-1" />
+                        Take Action
+                      </Button>
+                    )}
                     <Button size="sm" variant="outline" asChild>
                       <Link href={`/doctor/patients/${alert.patientId}`}>
                         View Patient
@@ -294,6 +348,63 @@ export default function DoctorAlertsPage() {
           ))
         )}
       </div>
+
+      {/* Take Action Dialog */}
+      <Dialog open={showActionDialog} onOpenChange={setShowActionDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Take Action on Alert</DialogTitle>
+            <DialogDescription>
+              Record the action taken for this alert
+            </DialogDescription>
+          </DialogHeader>
+          {selectedAlert && (
+            <div className="space-y-4 py-4">
+              <div className="p-3 rounded-lg border bg-muted/50">
+                <p className="font-semibold">{selectedAlert.patientName}</p>
+                <p className="text-sm">{selectedAlert.title}</p>
+                <p className="text-xs text-muted-foreground mt-1">{selectedAlert.description}</p>
+              </div>
+              <div className="space-y-2">
+                <Label>Action Taken</Label>
+                <Select value={actionType} onValueChange={setActionType}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select action type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Called patient">Called patient</SelectItem>
+                    <SelectItem value="Scheduled appointment">Scheduled appointment</SelectItem>
+                    <SelectItem value="Adjusted medication">Adjusted medication</SelectItem>
+                    <SelectItem value="Referred to specialist">Referred to specialist</SelectItem>
+                    <SelectItem value="Referred to counseling">Referred to counseling</SelectItem>
+                    <SelectItem value="Referred to financial aid">Referred to financial aid</SelectItem>
+                    <SelectItem value="Sent nurse for follow-up">Sent nurse for follow-up</SelectItem>
+                    <SelectItem value="No action needed">No action needed</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Notes (Optional)</Label>
+                <Textarea
+                  placeholder="Add any additional notes..."
+                  value={actionNotes}
+                  onChange={(e) => setActionNotes(e.target.value)}
+                  rows={3}
+                />
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowActionDialog(false)}>
+              Cancel
+            </Button>
+            <Button onClick={submitAction}>
+              <CheckCircle2 className="h-4 w-4 mr-2" />
+              Record Action
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

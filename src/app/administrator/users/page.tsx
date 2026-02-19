@@ -52,8 +52,10 @@ import {
   Key,
 } from 'lucide-react';
 import { mockSystemUsers, getRoleBadgeColor, getStatusBadgeVariant, SystemUser } from '@/lib/admin-data';
+import { useToast } from '@/hooks/use-toast';
 
 export default function UserManagementPage() {
+  const { toast } = useToast();
   const [users, setUsers] = useState<SystemUser[]>(mockSystemUsers);
   const [searchQuery, setSearchQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState<string>('all');
@@ -86,9 +88,14 @@ export default function UserManagementPage() {
     setUsers([...users, user]);
     setShowAddDialog(false);
     setNewUser({ name: '', email: '', role: 'nurse', department: '' });
+    toast({
+      title: 'User Created',
+      description: `${newUser.name} has been added. They will receive an email to set their password.`,
+    });
   };
 
   const toggleStatus = (id: string) => {
+    const user = users.find(u => u.id === id);
     setUsers(users.map(u => {
       if (u.id === id) {
         return {
@@ -98,6 +105,10 @@ export default function UserManagementPage() {
       }
       return u;
     }));
+    toast({
+      title: user?.status === 'active' ? 'User Deactivated' : 'User Activated',
+      description: `${user?.name} has been ${user?.status === 'active' ? 'deactivated' : 'activated'}.`,
+    });
   };
 
   const getStatusIcon = (status: string) => {
@@ -278,10 +289,10 @@ export default function UserManagementPage() {
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-1">
-                      <Button size="sm" variant="ghost" title="Edit">
+                      <Button size="sm" variant="ghost" title="Edit" onClick={() => toast({ title: 'Edit User', description: `Editing ${user.name}'s profile...` })}>
                         <Edit className="h-4 w-4" />
                       </Button>
-                      <Button size="sm" variant="ghost" title="Reset Password">
+                      <Button size="sm" variant="ghost" title="Reset Password" onClick={() => toast({ title: 'Password Reset', description: `Password reset email sent to ${user.email}.` })}>
                         <Key className="h-4 w-4" />
                       </Button>
                       <Button 

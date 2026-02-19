@@ -9,9 +9,11 @@ export interface Appointment {
   date: string;
   time: string;
   location: string;
-  status: 'Scheduled' | 'Confirmed' | 'Completed' | 'Cancelled';
+  status: 'Scheduled' | 'Confirmed' | 'Completed' | 'Cancelled' | 'Rescheduled';
   isVirtual: boolean;
   notes?: string;
+  travelTime?: string;
+  transportAssistance?: boolean;
 }
 
 export const mockAppointments: Appointment[] = [
@@ -336,6 +338,18 @@ export const mockTreatmentHistory: TreatmentEvent[] = [
 
 // Financial Info Types
 export interface FinancialInfo {
+  totalCost: number;
+  paidAmount: number;
+  outstandingBalance: number;
+  financialAidStatus: 'Not Applied' | 'Pending' | 'Approved' | 'Rejected';
+  installmentPlan: boolean;
+  nextPaymentDue: string;
+  nextPaymentAmount: number;
+  eligibleSchemes: string[];
+  documents: {
+    name: string;
+    status: 'Required' | 'Pending' | 'Verified' | 'Rejected';
+  }[];
   balance: number;
   lastPayment: { amount: number; date: string };
   insuranceCoverage: number;
@@ -357,6 +371,25 @@ export interface FinancialInfo {
 }
 
 export const mockFinancialInfo: FinancialInfo = {
+  totalCost: 12500,
+  paidAmount: 8750,
+  outstandingBalance: 3750,
+  financialAidStatus: 'Not Applied',
+  installmentPlan: true,
+  nextPaymentDue: '2026-03-01',
+  nextPaymentAmount: 375,
+  eligibleSchemes: [
+    'TB Treatment Subsidy Program',
+    'State Medical Assistance Fund',
+    'Hospital Charity Care Program',
+    'Patient Assistance Foundation',
+  ],
+  documents: [
+    { name: 'Proof of Income', status: 'Verified' },
+    { name: 'ID/Passport Copy', status: 'Verified' },
+    { name: 'Insurance Card', status: 'Pending' },
+    { name: 'Bank Statement', status: 'Required' },
+  ],
   balance: 245.00,
   lastPayment: { amount: 150.00, date: '2026-02-01' },
   insuranceCoverage: 80,
@@ -409,11 +442,11 @@ export interface EducationContent {
   title: string;
   category: string;
   type: 'Article' | 'Video' | 'Guide' | 'FAQ';
-  duration?: string;
-  description: string;
-  thumbnail?: string;
-  isCompleted: boolean;
+  summary: string;
+  readTime: string;
+  isRead: boolean;
   isRecommended: boolean;
+  content?: string;
 }
 
 export const mockEducationContent: EducationContent[] = [
@@ -422,18 +455,19 @@ export const mockEducationContent: EducationContent[] = [
     title: 'Managing Type 2 Diabetes',
     category: 'Diabetes',
     type: 'Guide',
-    description: 'Comprehensive guide on lifestyle changes, diet, and medication management for Type 2 Diabetes.',
-    isCompleted: true,
+    summary: 'Comprehensive guide on lifestyle changes, diet, and medication management for Type 2 Diabetes.',
+    readTime: '8 min',
+    isRead: true,
     isRecommended: true,
   },
   {
     id: '2',
     title: 'Understanding Blood Pressure',
     category: 'Heart Health',
-    type: 'Video',
-    duration: '8 min',
-    description: 'Learn about blood pressure, what the numbers mean, and how to keep it under control.',
-    isCompleted: false,
+    type: 'Article',
+    summary: 'Learn about blood pressure, what the numbers mean, and how to keep it under control.',
+    readTime: '5 min',
+    isRead: false,
     isRecommended: true,
   },
   {
@@ -441,9 +475,9 @@ export const mockEducationContent: EducationContent[] = [
     title: 'Medication Safety Tips',
     category: 'Medications',
     type: 'Article',
-    duration: '5 min read',
-    description: 'Important tips for taking your medications safely and effectively.',
-    isCompleted: false,
+    summary: 'Important tips for taking your medications safely and effectively.',
+    readTime: '4 min',
+    isRead: false,
     isRecommended: false,
   },
   {
@@ -451,18 +485,49 @@ export const mockEducationContent: EducationContent[] = [
     title: 'Healthy Eating on a Budget',
     category: 'Nutrition',
     type: 'Guide',
-    description: 'Practical tips for maintaining a healthy diet without breaking the bank.',
-    isCompleted: false,
+    summary: 'Practical tips for maintaining a healthy diet without breaking the bank.',
+    readTime: '6 min',
+    isRead: false,
     isRecommended: true,
   },
   {
     id: '5',
     title: 'Exercise for Beginners',
     category: 'Fitness',
-    type: 'Video',
-    duration: '12 min',
-    description: 'Gentle exercises suitable for all fitness levels.',
-    isCompleted: true,
+    type: 'Article',
+    summary: 'Gentle exercises suitable for all fitness levels.',
+    readTime: '5 min',
+    isRead: true,
+    isRecommended: false,
+  },
+  {
+    id: '6',
+    title: 'Understanding Your TB Treatment',
+    category: 'Treatment Info',
+    type: 'Guide',
+    summary: 'Learn about the phases of TB treatment, what to expect, and how to stay on track.',
+    readTime: '10 min',
+    isRead: false,
+    isRecommended: true,
+  },
+  {
+    id: '7',
+    title: 'Managing Treatment Side Effects',
+    category: 'Side Effects',
+    type: 'Article',
+    summary: 'Common side effects of TB medications and how to manage them effectively.',
+    readTime: '6 min',
+    isRead: false,
+    isRecommended: true,
+  },
+  {
+    id: '8',
+    title: 'TB Myths vs Facts',
+    category: 'Myths vs Facts',
+    type: 'Article',
+    summary: 'Debunking common misconceptions about tuberculosis and its treatment.',
+    readTime: '4 min',
+    isRead: false,
     isRecommended: false,
   },
 ];

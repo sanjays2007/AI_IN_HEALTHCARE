@@ -11,6 +11,9 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Progress } from '@/components/ui/progress';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import {
   Select,
   SelectContent,
@@ -27,6 +30,14 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
   Search,
   Filter,
   ChevronRight,
@@ -35,8 +46,17 @@ import {
   X,
   SortAsc,
   SortDesc,
+  Phone,
+  Mail,
+  MessageSquare,
+  Video,
+  Send,
+  Pill,
+  Activity,
+  ClipboardList,
 } from 'lucide-react';
 import Link from 'next/link';
+import { useToast } from '@/hooks/use-toast';
 import {
   mockPatientRiskProfiles,
   PatientRiskProfile,
@@ -57,6 +77,19 @@ export default function PatientRiskListPage() {
   const [sortField, setSortField] = useState<SortField>('dropoutRiskScore');
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
   const [showFilters, setShowFilters] = useState(false);
+  
+  // Patient detail dialog
+  const [showDetailDialog, setShowDetailDialog] = useState(false);
+  const [selectedPatient, setSelectedPatient] = useState<PatientRiskProfile | null>(null);
+  
+  // Quick action dialogs
+  const [showMessageDialog, setShowMessageDialog] = useState(false);
+  const [showInterventionDialog, setShowInterventionDialog] = useState(false);
+  const [messageContent, setMessageContent] = useState('');
+  const [interventionType, setInterventionType] = useState('');
+  const [interventionNotes, setInterventionNotes] = useState('');
+  
+  const { toast } = useToast();
 
   // Get unique values for filters
   const treatmentTypes = useMemo(() => 
@@ -149,6 +182,48 @@ export default function PatientRiskListPage() {
     if (score >= 60) return 'text-orange-600 bg-orange-100 dark:bg-orange-900/30';
     if (score >= 40) return 'text-yellow-600 bg-yellow-100 dark:bg-yellow-900/30';
     return 'text-green-600 bg-green-100 dark:bg-green-900/30';
+  };
+
+  const viewPatientDetails = (patient: PatientRiskProfile) => {
+    setSelectedPatient(patient);
+    setShowDetailDialog(true);
+  };
+
+  const openMessageDialog = (patient: PatientRiskProfile) => {
+    setSelectedPatient(patient);
+    setMessageContent('');
+    setShowMessageDialog(true);
+  };
+
+  const openInterventionDialog = (patient: PatientRiskProfile) => {
+    setSelectedPatient(patient);
+    setInterventionType('');
+    setInterventionNotes('');
+    setShowInterventionDialog(true);
+  };
+
+  const sendMessage = () => {
+    if (!messageContent.trim()) {
+      toast({ variant: "destructive", title: "Please enter a message" });
+      return;
+    }
+    toast({
+      title: "Message Sent",
+      description: `Message delivered to ${selectedPatient?.name}`,
+    });
+    setShowMessageDialog(false);
+  };
+
+  const createIntervention = () => {
+    if (!interventionType) {
+      toast({ variant: "destructive", title: "Please select an intervention type" });
+      return;
+    }
+    toast({
+      title: "Intervention Created",
+      description: `${interventionType} intervention created for ${selectedPatient?.name}`,
+    });
+    setShowInterventionDialog(false);
   };
 
   return (
@@ -351,11 +426,12 @@ export default function PatientRiskListPage() {
                 filteredPatients.map((patient) => (
                   <TableRow 
                     key={patient.id}
-                    className={
+                    className={`cursor-pointer hover:bg-muted/50 ${
                       patient.riskCategory === 'critical' ? 'bg-red-50/50 dark:bg-red-900/10' :
                       patient.riskCategory === 'high' ? 'bg-orange-50/50 dark:bg-orange-900/10' :
                       ''
-                    }
+                    }`}
+                    onClick={() => viewPatientDetails(patient)}
                   >
                     <TableCell className="font-mono text-xs">
                       {patient.patientId}
@@ -401,12 +477,32 @@ export default function PatientRiskListPage() {
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      <Button variant="ghost" size="sm" asChild>
-                        <Link href={`/doctor/patients/${patient.id}`}>
+                      <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          title="Send Message"
+                          onClick={() => openMessageDialog(patient)}
+                        >
+                          <MessageSquare className="h-4 w-4" />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          title="Create Intervention"
+                          onClick={() => openInterventionDialog(patient)}
+                        >
+                          <ClipboardList className="h-4 w-4" />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => viewPatientDetails(patient)}
+                        >
                           Details
                           <ChevronRight className="h-4 w-4 ml-1" />
-                        </Link>
-                      </Button>
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))
@@ -415,6 +511,304 @@ export default function PatientRiskListPage() {
           </Table>
         </CardContent>
       </Card>
+
+      {/* Patient Detail Dialog */}
+      <Dialog open={showDetailDialog} onOpenChange={setShowDetailDialog}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Patient Details</DialogTitle>
+            <DialogDescription>
+              Comprehensive view of patient risk profile
+            </DialogDescription>
+          </DialogHeader>
+          {selectedPatient && (
+            <div className="space-y-6 py-4">
+              {/* Patient Info Header */}
+              <div className="flex items-start justify-between">
+                <div>
+                  <h2 className="text-2xl font-bold">{selectedPatient.name}</h2>
+                  <p className="text-sm text-muted-foreground">
+                    ID: {selectedPatient.patientId} • {selectedPatient.age}y • {selectedPatient.gender}
+                  </p>
+                  <div className="flex gap-2 mt-2">
+                    <Badge variant={getRiskBadgeVariant(selectedPatient.riskCategory)}>
+                      {selectedPatient.riskCategory.toUpperCase()} RISK
+                    </Badge>
+                    <span className={`inline-flex items-center px-2 py-1 rounded-md font-bold text-sm ${getRiskScoreColor(selectedPatient.dropoutRiskScore)}`}>
+                      {selectedPatient.dropoutRiskScore}% Risk Score
+                    </span>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <Button 
+                    size="icon" 
+                    variant="outline"
+                    onClick={() => {
+                      toast({ title: "Calling patient...", description: selectedPatient.contactPhone });
+                    }}
+                  >
+                    <Phone className="h-4 w-4" />
+                  </Button>
+                  <Button 
+                    size="icon" 
+                    variant="outline"
+                    onClick={() => openMessageDialog(selectedPatient)}
+                  >
+                    <MessageSquare className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+
+              {/* Clinical Info */}
+              <div className="grid gap-4 md:grid-cols-2">
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm">Clinical Information</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Diagnosis:</span>
+                      <span className="font-medium">{selectedPatient.diagnosis}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Treatment:</span>
+                      <span className="font-medium">{selectedPatient.treatmentType}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Phase:</span>
+                      <span className="font-medium">{selectedPatient.treatmentPhase}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Medication:</span>
+                      <span className="font-medium">{selectedPatient.medicationPlan}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Progress:</span>
+                      <span className="font-medium">{selectedPatient.treatmentCompletionPercent}%</span>
+                    </div>
+                    <Progress value={selectedPatient.treatmentCompletionPercent} className="h-2 mt-2" />
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm">Primary Risk Factor</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex items-center gap-2 p-3 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200">
+                      <AlertTriangle className="h-5 w-5 text-red-500" />
+                      <span className="font-medium text-red-700 dark:text-red-300">
+                        {selectedPatient.primaryRiskFactor}
+                      </span>
+                    </div>
+                    <div className="mt-4 space-y-2">
+                      <div className="flex items-center justify-between text-sm">
+                        <span>Financial</span>
+                        <span>{selectedPatient.riskBreakdown.financial}%</span>
+                      </div>
+                      <Progress value={selectedPatient.riskBreakdown.financial} className="h-1.5" />
+                      <div className="flex items-center justify-between text-sm">
+                        <span>Side Effects</span>
+                        <span>{selectedPatient.riskBreakdown.sideEffect}%</span>
+                      </div>
+                      <Progress value={selectedPatient.riskBreakdown.sideEffect} className="h-1.5" />
+                      <div className="flex items-center justify-between text-sm">
+                        <span>Emotional</span>
+                        <span>{selectedPatient.riskBreakdown.emotional}%</span>
+                      </div>
+                      <Progress value={selectedPatient.riskBreakdown.emotional} className="h-1.5" />
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Adherence Metrics */}
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm flex items-center gap-2">
+                    <Activity className="h-4 w-4" />
+                    Adherence Metrics
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid gap-4 md:grid-cols-3">
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="flex items-center gap-1 text-sm">
+                          <Pill className="h-3 w-3" /> Medication
+                        </span>
+                        <span className={`font-bold ${selectedPatient.medicationAdherence >= 80 ? 'text-green-600' : selectedPatient.medicationAdherence >= 60 ? 'text-yellow-600' : 'text-red-600'}`}>
+                          {selectedPatient.medicationAdherence}%
+                        </span>
+                      </div>
+                      <Progress value={selectedPatient.medicationAdherence} className="h-2" />
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="flex items-center gap-1 text-sm">
+                          <Calendar className="h-3 w-3" /> Appointments
+                        </span>
+                        <span className={`font-bold ${selectedPatient.appointmentAdherence >= 80 ? 'text-green-600' : selectedPatient.appointmentAdherence >= 60 ? 'text-yellow-600' : 'text-red-600'}`}>
+                          {selectedPatient.appointmentAdherence}%
+                        </span>
+                      </div>
+                      <Progress value={selectedPatient.appointmentAdherence} className="h-2" />
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="flex items-center gap-1 text-sm">
+                          <MessageSquare className="h-3 w-3" /> Communication
+                        </span>
+                        <span className={`font-bold ${selectedPatient.communicationResponseRate >= 80 ? 'text-green-600' : selectedPatient.communicationResponseRate >= 60 ? 'text-yellow-600' : 'text-red-600'}`}>
+                          {selectedPatient.communicationResponseRate}%
+                        </span>
+                      </div>
+                      <Progress value={selectedPatient.communicationResponseRate} className="h-2" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Contact & Appointment Info */}
+              <div className="grid gap-4 md:grid-cols-2">
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm">Contact Information</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2 text-sm">
+                    <div className="flex items-center gap-2">
+                      <Phone className="h-4 w-4 text-muted-foreground" />
+                      {selectedPatient.contactPhone}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Mail className="h-4 w-4 text-muted-foreground" />
+                      {selectedPatient.contactEmail}
+                    </div>
+                    <div className="text-muted-foreground mt-2">
+                      Emergency: {selectedPatient.emergencyContact}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm">Appointments</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Last Visit:</span>
+                      <span className="font-medium">{formatDate(selectedPatient.lastVisitDate)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Next Appointment:</span>
+                      <span className="font-medium">{formatDate(selectedPatient.nextAppointment)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Missed:</span>
+                      <Badge variant={selectedPatient.missedAppointmentCount >= 3 ? 'destructive' : 'secondary'}>
+                        {selectedPatient.missedAppointmentCount} appointments
+                      </Badge>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowDetailDialog(false)}>
+              Close
+            </Button>
+            <Button onClick={() => {
+              setShowDetailDialog(false);
+              if (selectedPatient) openInterventionDialog(selectedPatient);
+            }}>
+              <ClipboardList className="h-4 w-4 mr-2" />
+              Create Intervention
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Send Message Dialog */}
+      <Dialog open={showMessageDialog} onOpenChange={setShowMessageDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Send Message</DialogTitle>
+            <DialogDescription>
+              Send a message to {selectedPatient?.name}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Message</Label>
+              <Textarea
+                placeholder="Type your message..."
+                value={messageContent}
+                onChange={(e) => setMessageContent(e.target.value)}
+                rows={4}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowMessageDialog(false)}>
+              Cancel
+            </Button>
+            <Button onClick={sendMessage}>
+              <Send className="h-4 w-4 mr-2" />
+              Send Message
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Create Intervention Dialog */}
+      <Dialog open={showInterventionDialog} onOpenChange={setShowInterventionDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Create Intervention</DialogTitle>
+            <DialogDescription>
+              Create an intervention for {selectedPatient?.name}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Intervention Type</Label>
+              <Select value={interventionType} onValueChange={setInterventionType}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select intervention type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Dosage Adjustment">Dosage Adjustment</SelectItem>
+                  <SelectItem value="Telehealth Consult">Telehealth Consult</SelectItem>
+                  <SelectItem value="Financial Referral">Financial Referral</SelectItem>
+                  <SelectItem value="Nurse Follow-up">Nurse Follow-up</SelectItem>
+                  <SelectItem value="Education Session">Education Session</SelectItem>
+                  <SelectItem value="Mental Health Support">Mental Health Support</SelectItem>
+                  <SelectItem value="Urgent Appointment">Urgent Appointment</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Notes</Label>
+              <Textarea
+                placeholder="Add any notes..."
+                value={interventionNotes}
+                onChange={(e) => setInterventionNotes(e.target.value)}
+                rows={3}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowInterventionDialog(false)}>
+              Cancel
+            </Button>
+            <Button onClick={createIntervention}>
+              <ClipboardList className="h-4 w-4 mr-2" />
+              Create Intervention
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

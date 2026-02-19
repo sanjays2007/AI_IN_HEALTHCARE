@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useToast } from '@/hooks/use-toast';
 import {
   Card,
   CardContent,
@@ -40,9 +41,45 @@ import {
 import { mockAIModelMetrics } from '@/lib/admin-data';
 
 export default function AIModelPage() {
+  const { toast } = useToast();
   const [autoRetrain, setAutoRetrain] = useState(true);
   const [humanReviewThreshold, setHumanReviewThreshold] = useState(true);
   const metrics = mockAIModelMetrics;
+
+  const handleRetrain = () => {
+    toast({
+      title: 'Model Retraining Initiated',
+      description: 'The model is being retrained with the latest data.',
+    });
+  };
+
+  const handleConfigure = () => {
+    toast({
+      title: 'Configuration Panel',
+      description: 'Model configuration settings opened.',
+    });
+  };
+
+  const handleApprovePrediction = (patientId: string) => {
+    toast({
+      title: 'Prediction Approved',
+      description: `Prediction for ${patientId} has been approved.`,
+    });
+  };
+
+  const handleRejectPrediction = (patientId: string) => {
+    toast({
+      title: 'Prediction Rejected',
+      description: `Prediction for ${patientId} has been rejected.`,
+    });
+  };
+
+  const handleViewPrediction = (patientId: string) => {
+    toast({
+      title: 'Viewing Details',
+      description: `Loading details for ${patientId}...`,
+    });
+  };
 
   const flaggedPredictions = [
     { id: 1, patientId: 'PT-1023', riskScore: 92, confidence: 45, reason: 'Low confidence - unusual pattern', status: 'review' },
@@ -83,11 +120,11 @@ export default function AIModelPage() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline">
+          <Button variant="outline" onClick={handleRetrain}>
             <RefreshCw className="h-4 w-4 mr-2" />
             Retrain Model
           </Button>
-          <Button className="bg-purple-600 hover:bg-purple-700">
+          <Button className="bg-purple-600 hover:bg-purple-700" onClick={handleConfigure}>
             <Settings className="h-4 w-4 mr-2" />
             Configure
           </Button>
@@ -365,13 +402,13 @@ export default function AIModelPage() {
                       <TableCell>
                         {pred.status === 'review' && (
                           <div className="flex gap-1">
-                            <Button size="sm" variant="outline" className="text-green-600">
+                            <Button size="sm" variant="outline" className="text-green-600" onClick={() => handleApprovePrediction(pred.patientId)}>
                               <CheckCircle2 className="h-4 w-4" />
                             </Button>
-                            <Button size="sm" variant="outline" className="text-red-600">
+                            <Button size="sm" variant="outline" className="text-red-600" onClick={() => handleRejectPrediction(pred.patientId)}>
                               <XCircle className="h-4 w-4" />
                             </Button>
-                            <Button size="sm" variant="ghost">
+                            <Button size="sm" variant="ghost" onClick={() => handleViewPrediction(pred.patientId)}>
                               <Eye className="h-4 w-4" />
                             </Button>
                           </div>

@@ -8,6 +8,8 @@ import { Calendar } from '@/components/ui/calendar';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { 
   Calendar as CalendarIcon, 
@@ -28,6 +30,13 @@ export default function AppointmentsPage() {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [rescheduleDialogOpen, setRescheduleDialogOpen] = useState(false);
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
+  const [transportDialogOpen, setTransportDialogOpen] = useState(false);
+  const [transportRequest, setTransportRequest] = useState({
+    appointmentId: '',
+    reason: '',
+    pickupAddress: '',
+    specialNeeds: ''
+  });
   const { toast } = useToast();
 
   const upcomingAppointments = appointments.filter(a => a.status === 'Scheduled' || a.status === 'Confirmed');
@@ -67,6 +76,32 @@ export default function AppointmentsPage() {
         description: `Your appointment has been moved to ${selectedDate.toLocaleDateString()}.`,
       });
     }
+  };
+
+  const handleTransportRequest = () => {
+    if (!transportRequest.appointmentId) {
+      toast({
+        variant: "destructive",
+        title: "Missing Information",
+        description: "Please select an appointment for transport assistance.",
+      });
+      return;
+    }
+    
+    // Mark the selected appointment as having transport assistance
+    setAppointments(prev => prev.map(apt => 
+      apt.id === transportRequest.appointmentId 
+        ? { ...apt, transportAssistance: true } 
+        : apt
+    ));
+    
+    setTransportDialogOpen(false);
+    setTransportRequest({ appointmentId: '', reason: '', pickupAddress: '', specialNeeds: '' });
+    
+    toast({
+      title: "Transport Request Submitted",
+      description: "Your transport assistance request has been submitted. You'll be notified once it's confirmed.",
+    });
   };
 
   const getStatusColor = (status: string) => {
@@ -338,10 +373,87 @@ export default function AppointmentsPage() {
             If you&apos;re facing difficulties with transportation, you may be eligible for transport assistance. 
             This service provides free or subsidized transportation to and from your medical appointments.
           </p>
-          <Button variant="outline">
-            <AlertCircle className="mr-2 h-4 w-4" />
-            Request Transport Assistance
-          </Button>
+          <Dialog open={transportDialogOpen} onOpenChange={setTransportDialogOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline">
+                <AlertCircle className="mr-2 h-4 w-4" />
+                Request Transport Assistance
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[500px]">
+              <DialogHeader>
+                <DialogTitle>Request Transport Assistance</DialogTitle>
+                <DialogDescription>
+                  Fill out this form to request free or subsidized transportation to your appointment.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="appointment">Select Appointment</Label>
+                  <Select 
+                    value={transportRequest.appointmentId}
+                    onValueChange={(value) => setTransportRequest(prev => ({ ...prev, appointmentId: value }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Choose an appointment" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {upcomingAppointments.filter(a => !a.transportAssistance).map(apt => (
+                        <SelectItem key={apt.id} value={apt.id}>
+                          {apt.type} - {new Date(apt.date).toLocaleDateString()} at {apt.time}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="pickupAddress">Pickup Address</Label>
+                  <Textarea
+                    id="pickupAddress"
+                    placeholder="Enter your full pickup address..."
+                    value={transportRequest.pickupAddress}
+                    onChange={(e) => setTransportRequest(prev => ({ ...prev, pickupAddress: e.target.value }))}
+                    rows={2}
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="reason">Reason for Request</Label>
+                  <Select 
+                    value={transportRequest.reason}
+                    onValueChange={(value) => setTransportRequest(prev => ({ ...prev, reason: value }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a reason" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="no-vehicle">No personal vehicle</SelectItem>
+                      <SelectItem value="medical-condition">Medical condition prevents driving</SelectItem>
+                      <SelectItem value="financial">Financial constraints</SelectItem>
+                      <SelectItem value="distance">Long distance to facility</SelectItem>
+                      <SelectItem value="other">Other</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="specialNeeds">Special Needs (Optional)</Label>
+                  <Textarea
+                    id="specialNeeds"
+                    placeholder="Wheelchair access, oxygen support, etc..."
+                    value={transportRequest.specialNeeds}
+                    onChange={(e) => setTransportRequest(prev => ({ ...prev, specialNeeds: e.target.value }))}
+                    rows={2}
+                  />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setTransportDialogOpen(false)}>Cancel</Button>
+                <Button onClick={handleTransportRequest}>
+                  <Car className="mr-2 h-4 w-4" />
+                  Submit Request
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </CardContent>
       </Card>
     </div>

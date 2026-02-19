@@ -19,6 +19,24 @@ import {
   Activity,
   X,
 } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import { useToast } from '@/hooks/use-toast';
 
 interface Alert {
   id: string;
@@ -84,13 +102,40 @@ export default function NurseAlertsPage() {
       read: true,
     },
   ]);
+  const [showActionDialog, setShowActionDialog] = useState(false);
+  const [selectedAlert, setSelectedAlert] = useState<Alert | null>(null);
+  const [actionType, setActionType] = useState('');
+  const [actionNotes, setActionNotes] = useState('');
+  const { toast } = useToast();
 
   const markAsRead = (id: string) => {
     setAlerts(alerts.map(a => a.id === id ? { ...a, read: true } : a));
+    toast({ title: "Marked as Read" });
   };
 
   const dismissAlert = (id: string) => {
     setAlerts(alerts.filter(a => a.id !== id));
+    toast({ title: "Alert Dismissed" });
+  };
+
+  const openActionDialog = (alert: Alert) => {
+    setSelectedAlert(alert);
+    setShowActionDialog(true);
+  };
+
+  const handleTakeAction = () => {
+    if (!actionType) {
+      toast({ variant: "destructive", title: "Please select an action" });
+      return;
+    }
+    setAlerts(alerts.map(a => a.id === selectedAlert?.id ? { ...a, read: true } : a));
+    toast({
+      title: "Action Recorded",
+      description: `${actionType} logged for ${selectedAlert?.patient}`,
+    });
+    setShowActionDialog(false);
+    setActionType('');
+    setActionNotes('');
   };
 
   const getAlertIcon = (type: string) => {
@@ -126,7 +171,7 @@ export default function NurseAlertsPage() {
             Patient alerts and notifications
           </p>
         </div>
-        <Button variant="outline" onClick={() => setAlerts(alerts.map(a => ({ ...a, read: true })))}>
+        <Button variant="outline" onClick={() => { setAlerts(alerts.map(a => ({ ...a, read: true }))); toast({ title: "All Alerts Marked as Read" }); }}>
           Mark All as Read
         </Button>
       </div>
@@ -209,10 +254,10 @@ export default function NurseAlertsPage() {
                 </div>
                 {alert.type === 'critical' && !alert.read && (
                   <div className="mt-3 flex gap-2">
-                    <Button size="sm" variant="destructive">
+                    <Button size="sm" variant="destructive" onClick={() => openActionDialog(alert)}>
                       Take Action
                     </Button>
-                    <Button size="sm" variant="outline">
+                    <Button size="sm" variant="outline" onClick={() => toast({ title: "Opening Patient Record", description: `Viewing ${alert.patient}` })}>
                       View Patient
                     </Button>
                   </div>
@@ -227,6 +272,44 @@ export default function NurseAlertsPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Action Dialog */}
+      <Dialog open={showActionDialog} onOpenChange={setShowActionDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Take Action</DialogTitle>
+            <DialogDescription>Record action taken for {selectedAlert?.patient}</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="p-3 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200">
+              <p className="font-medium">{selectedAlert?.title}</p>
+              <p className="text-sm text-muted-foreground">{selectedAlert?.message}</p>
+            </div>
+            <div className="space-y-2">
+              <Label>Action Taken*</Label>
+              <Select value={actionType} onValueChange={setActionType}>
+                <SelectTrigger><SelectValue placeholder="Select action" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="phone_call">Phone Call Made</SelectItem>
+                  <SelectItem value="home_visit">Home Visit Scheduled</SelectItem>
+                  <SelectItem value="medication_reminder">Medication Reminder Sent</SelectItem>
+                  <SelectItem value="doctor_notified">Doctor Notified</SelectItem>
+                  <SelectItem value="escalated">Escalated to Supervisor</SelectItem>
+                  <SelectItem value="follow_up_scheduled">Follow-up Scheduled</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Notes</Label>
+              <Textarea placeholder="Action details..." value={actionNotes} onChange={(e) => setActionNotes(e.target.value)} rows={3} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowActionDialog(false)}>Cancel</Button>
+            <Button onClick={handleTakeAction}>Record Action</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

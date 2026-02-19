@@ -10,7 +10,22 @@ import {
 } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import {
   BarChart3,
   TrendingUp,
@@ -24,7 +39,12 @@ import {
   UserCheck,
   Activity,
   Calendar,
+  Download,
+  Filter,
+  Eye,
 } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import Link from 'next/link';
 import {
   mockDepartmentStats,
   mockRiskDistribution,
@@ -33,6 +53,12 @@ import {
 
 export default function DepartmentAnalyticsPage() {
   const [deptStats] = useState(mockDepartmentStats);
+  const [timeRange, setTimeRange] = useState('30');
+  const [selectedDept, setSelectedDept] = useState<typeof mockDepartmentStats[0] | null>(null);
+  const [showDeptDialog, setShowDeptDialog] = useState(false);
+  const [selectedCluster, setSelectedCluster] = useState<{ name: string; patients: typeof mockPatientRiskProfiles } | null>(null);
+  const [showClusterDialog, setShowClusterDialog] = useState(false);
+  const { toast } = useToast();
 
   // Calculate common dropout causes
   const riskFactorCounts = mockPatientRiskProfiles.reduce((acc, p) => {
@@ -60,17 +86,72 @@ export default function DepartmentAnalyticsPage() {
     return <AlertTriangle className="h-4 w-4" />;
   };
 
+  const handleExportReport = () => {
+    toast({
+      title: "Report Exported",
+      description: "Analytics report downloaded as PDF",
+    });
+  };
+
+  const handleExportCSV = () => {
+    toast({
+      title: "Data Exported",
+      description: "Analytics data exported as CSV",
+    });
+  };
+
+  const openDeptDetails = (dept: typeof mockDepartmentStats[0]) => {
+    setSelectedDept(dept);
+    setShowDeptDialog(true);
+  };
+
+  const deptPatients = (deptName: string) => 
+    mockPatientRiskProfiles.filter(p => p.department === deptName);
+
+  const financialClusterPatients = mockPatientRiskProfiles.filter(p => p.riskBreakdown.financial >= 40);
+  const sideEffectClusterPatients = mockPatientRiskProfiles.filter(p => p.riskBreakdown.sideEffect >= 35);
+  const emotionalClusterPatients = mockPatientRiskProfiles.filter(p => p.riskBreakdown.emotional >= 30);
+
+  const openClusterDialog = (name: string, patients: typeof mockPatientRiskProfiles) => {
+    setSelectedCluster({ name, patients });
+    setShowClusterDialog(true);
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
-          <BarChart3 className="h-8 w-8 text-green-600" />
-          Department Analytics
-        </h1>
-        <p className="text-muted-foreground">
-          Macro-level insights across departments and treatment types
-        </p>
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
+            <BarChart3 className="h-8 w-8 text-green-600" />
+            Department Analytics
+          </h1>
+          <p className="text-muted-foreground">
+            Macro-level insights across departments and treatment types
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Select value={timeRange} onValueChange={setTimeRange}>
+            <SelectTrigger className="w-[150px]">
+              <Filter className="h-4 w-4 mr-2" />
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="7">Last 7 days</SelectItem>
+              <SelectItem value="30">Last 30 days</SelectItem>
+              <SelectItem value="90">Last 90 days</SelectItem>
+              <SelectItem value="365">Last year</SelectItem>
+            </SelectContent>
+          </Select>
+          <Button variant="outline" onClick={handleExportCSV}>
+            <Download className="h-4 w-4 mr-2" />
+            Export CSV
+          </Button>
+          <Button onClick={handleExportReport}>
+            <Download className="h-4 w-4 mr-2" />
+            Export Report
+          </Button>
+        </div>
       </div>
 
       {/* Overview Cards */}
@@ -151,13 +232,18 @@ export default function DepartmentAnalyticsPage() {
               <CardContent>
                 <div className="space-y-4">
                   {deptStats.sort((a, b) => b.avgDropoutRisk - a.avgDropoutRisk).map((dept) => (
-                    <div key={dept.department} className="space-y-2">
+                    <div 
+                      key={dept.department} 
+                      className="space-y-2 p-3 rounded-lg hover:bg-muted/50 cursor-pointer transition-colors"
+                      onClick={() => openDeptDetails(dept)}
+                    >
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <span className="font-medium">{dept.department}</span>
                           <Badge variant="outline" className="text-xs">
                             {dept.totalPatients} patients
                           </Badge>
+                          <Eye className="h-3 w-3 text-muted-foreground" />
                         </div>
                         <span className={`font-bold ${
                           dept.avgDropoutRisk >= 40 ? 'text-red-600' :
@@ -349,7 +435,10 @@ export default function DepartmentAnalyticsPage() {
             </CardHeader>
             <CardContent>
               <div className="grid gap-4 md:grid-cols-3">
-                <div className="p-4 rounded-lg border bg-red-50 dark:bg-red-900/10 border-red-200">
+                <div 
+                  className="p-4 rounded-lg border bg-red-50 dark:bg-red-900/10 border-red-200 cursor-pointer hover:shadow-md transition-shadow"
+                  onClick={() => openClusterDialog('Financial Burden Cluster', financialClusterPatients)}
+                >
                   <div className="flex items-center gap-2 mb-3">
                     <AlertTriangle className="h-5 w-5 text-red-500" />
                     <h4 className="font-semibold">Financial Burden Cluster</h4>
@@ -358,12 +447,15 @@ export default function DepartmentAnalyticsPage() {
                     Patients with high financial risk often show delayed payments and insurance gaps
                   </p>
                   <div className="text-2xl font-bold text-red-600">
-                    {mockPatientRiskProfiles.filter(p => p.riskBreakdown.financial >= 40).length} patients
+                    {financialClusterPatients.length} patients
                   </div>
-                  <p className="text-xs text-muted-foreground">Financial risk ≥ 40%</p>
+                  <p className="text-xs text-muted-foreground">Financial risk ≥ 40% • Click to view</p>
                 </div>
 
-                <div className="p-4 rounded-lg border bg-orange-50 dark:bg-orange-900/10 border-orange-200">
+                <div 
+                  className="p-4 rounded-lg border bg-orange-50 dark:bg-orange-900/10 border-orange-200 cursor-pointer hover:shadow-md transition-shadow"
+                  onClick={() => openClusterDialog('Side Effect Cluster', sideEffectClusterPatients)}
+                >
                   <div className="flex items-center gap-2 mb-3">
                     <Pill className="h-5 w-5 text-orange-500" />
                     <h4 className="font-semibold">Side Effect Cluster</h4>
@@ -372,12 +464,15 @@ export default function DepartmentAnalyticsPage() {
                     Patients experiencing severe side effects with poor medication adherence
                   </p>
                   <div className="text-2xl font-bold text-orange-600">
-                    {mockPatientRiskProfiles.filter(p => p.riskBreakdown.sideEffect >= 35).length} patients
+                    {sideEffectClusterPatients.length} patients
                   </div>
-                  <p className="text-xs text-muted-foreground">Side effect risk ≥ 35%</p>
+                  <p className="text-xs text-muted-foreground">Side effect risk ≥ 35% • Click to view</p>
                 </div>
 
-                <div className="p-4 rounded-lg border bg-purple-50 dark:bg-purple-900/10 border-purple-200">
+                <div 
+                  className="p-4 rounded-lg border bg-purple-50 dark:bg-purple-900/10 border-purple-200 cursor-pointer hover:shadow-md transition-shadow"
+                  onClick={() => openClusterDialog('Emotional Distress Cluster', emotionalClusterPatients)}
+                >
                   <div className="flex items-center gap-2 mb-3">
                     <Heart className="h-5 w-5 text-purple-500" />
                     <h4 className="font-semibold">Emotional Distress Cluster</h4>
@@ -386,9 +481,9 @@ export default function DepartmentAnalyticsPage() {
                     Patients showing signs of anxiety, depression, or treatment fatigue
                   </p>
                   <div className="text-2xl font-bold text-purple-600">
-                    {mockPatientRiskProfiles.filter(p => p.riskBreakdown.emotional >= 30).length} patients
+                    {emotionalClusterPatients.length} patients
                   </div>
-                  <p className="text-xs text-muted-foreground">Emotional risk ≥ 30%</p>
+                  <p className="text-xs text-muted-foreground">Emotional risk ≥ 30% • Click to view</p>
                 </div>
               </div>
             </CardContent>
@@ -430,6 +525,108 @@ export default function DepartmentAnalyticsPage() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Department Detail Dialog */}
+      <Dialog open={showDeptDialog} onOpenChange={setShowDeptDialog}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>{selectedDept?.department} Department Details</DialogTitle>
+            <DialogDescription>
+              Detailed analytics and patient list for this department
+            </DialogDescription>
+          </DialogHeader>
+          {selectedDept && (
+            <div className="space-y-4 py-4">
+              <div className="grid grid-cols-3 gap-4">
+                <div className="p-3 rounded-lg bg-muted/50 text-center">
+                  <p className="text-2xl font-bold">{selectedDept.totalPatients}</p>
+                  <p className="text-xs text-muted-foreground">Total Patients</p>
+                </div>
+                <div className="p-3 rounded-lg bg-red-50 dark:bg-red-900/10 text-center">
+                  <p className="text-2xl font-bold text-red-600">{selectedDept.highRiskCount}</p>
+                  <p className="text-xs text-muted-foreground">High Risk</p>
+                </div>
+                <div className="p-3 rounded-lg bg-green-50 dark:bg-green-900/10 text-center">
+                  <p className="text-2xl font-bold text-green-600">{selectedDept.treatmentCompletionRate}%</p>
+                  <p className="text-xs text-muted-foreground">Completion Rate</p>
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                <p className="text-sm font-medium">Top Risk Factor</p>
+                <Badge variant="outline">{selectedDept.topRiskFactor}</Badge>
+              </div>
+
+              <div className="space-y-2">
+                <p className="text-sm font-medium">Average Dropout Risk</p>
+                <div className="flex items-center gap-3">
+                  <Progress value={selectedDept.avgDropoutRisk} className="flex-1 h-3" />
+                  <span className="font-bold">{selectedDept.avgDropoutRisk}%</span>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <p className="text-sm font-medium">Patients in this Department</p>
+                <div className="max-h-40 overflow-y-auto space-y-2">
+                  {deptPatients(selectedDept.department).map(patient => (
+                    <Link 
+                      key={patient.id}
+                      href={`/doctor/patients/${patient.id}`}
+                      className="flex items-center justify-between p-2 rounded-lg border hover:bg-muted/50 transition-colors"
+                    >
+                      <span className="font-medium">{patient.name}</span>
+                      <div className="flex items-center gap-2">
+                        <Badge variant={
+                          patient.riskCategory === 'critical' ? 'destructive' :
+                          patient.riskCategory === 'high' ? 'default' : 'secondary'
+                        }>
+                          {patient.dropoutRiskScore}% risk
+                        </Badge>
+                      </div>
+                    </Link>
+                  ))}
+                  {deptPatients(selectedDept.department).length === 0 && (
+                    <p className="text-sm text-muted-foreground text-center py-4">
+                      No patients found in this department
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Cluster Detail Dialog */}
+      <Dialog open={showClusterDialog} onOpenChange={setShowClusterDialog}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{selectedCluster?.name}</DialogTitle>
+            <DialogDescription>
+              {selectedCluster?.patients.length} patients in this risk cluster
+            </DialogDescription>
+          </DialogHeader>
+          {selectedCluster && (
+            <div className="space-y-2 max-h-80 overflow-y-auto">
+              {selectedCluster.patients.map(patient => (
+                <Link
+                  key={patient.id}
+                  href={`/doctor/patients/${patient.id}`}
+                  className="flex items-center justify-between p-3 rounded-lg border hover:bg-muted/50 transition-colors"
+                >
+                  <div>
+                    <p className="font-medium">{patient.name}</p>
+                    <p className="text-xs text-muted-foreground">{patient.department} • {patient.diagnosis}</p>
+                  </div>
+                  <Badge variant={patient.riskCategory === 'critical' ? 'destructive' : 'default'}>
+                    {patient.dropoutRiskScore}%
+                  </Badge>
+                </Link>
+              ))}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

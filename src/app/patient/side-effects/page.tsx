@@ -25,6 +25,7 @@ import { mockSideEffects, mockMedications, symptomOptions, SideEffectReport } fr
 export default function SideEffectsPage() {
   const [sideEffects, setSideEffects] = useState<SideEffectReport[]>(mockSideEffects);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [emergencyDialogOpen, setEmergencyDialogOpen] = useState(false);
   const [newReport, setNewReport] = useState({
     symptom: '',
     severity: 3,
@@ -377,10 +378,82 @@ export default function SideEffectsPage() {
             <li>Uncontrolled bleeding</li>
             <li>High fever (over 103°F / 39.4°C)</li>
           </ul>
-          <Button variant="destructive" className="mt-4">
-            <Phone className="mr-2 h-4 w-4" />
-            Emergency Helpline
-          </Button>
+          <Dialog open={emergencyDialogOpen} onOpenChange={setEmergencyDialogOpen}>
+            <DialogTrigger asChild>
+              <Button variant="destructive" className="mt-4">
+                <Phone className="mr-2 h-4 w-4" />
+                Emergency Helpline
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[425px]">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2 text-red-600">
+                  <AlertTriangle className="h-5 w-5" />
+                  Emergency Contacts
+                </DialogTitle>
+                <DialogDescription>
+                  If you are experiencing a medical emergency, call immediately.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                <a 
+                  href="tel:911" 
+                  className="flex items-center justify-between p-4 rounded-lg border-2 border-red-500 bg-red-50 dark:bg-red-950 hover:bg-red-100 dark:hover:bg-red-900 transition-colors"
+                >
+                  <div>
+                    <p className="font-bold text-red-700 dark:text-red-300">Emergency Services</p>
+                    <p className="text-sm text-red-600 dark:text-red-400">Life-threatening emergencies</p>
+                  </div>
+                  <div className="flex items-center gap-2 text-red-700 dark:text-red-300 font-bold text-lg">
+                    <Phone className="h-5 w-5" />
+                    911
+                  </div>
+                </a>
+                <a 
+                  href="tel:1-800-555-0123" 
+                  className="flex items-center justify-between p-4 rounded-lg border bg-background hover:bg-muted transition-colors"
+                >
+                  <div>
+                    <p className="font-medium">Hospital Nurse Line</p>
+                    <p className="text-sm text-muted-foreground">24/7 medical advice</p>
+                  </div>
+                  <div className="flex items-center gap-2 text-primary font-medium">
+                    <Phone className="h-4 w-4" />
+                    1-800-555-0123
+                  </div>
+                </a>
+                <a 
+                  href="tel:1-800-555-0199" 
+                  className="flex items-center justify-between p-4 rounded-lg border bg-background hover:bg-muted transition-colors"
+                >
+                  <div>
+                    <p className="font-medium">Poison Control</p>
+                    <p className="text-sm text-muted-foreground">Medication or substance concerns</p>
+                  </div>
+                  <div className="flex items-center gap-2 text-primary font-medium">
+                    <Phone className="h-4 w-4" />
+                    1-800-555-0199
+                  </div>
+                </a>
+                <a 
+                  href="tel:1-800-555-0150" 
+                  className="flex items-center justify-between p-4 rounded-lg border bg-background hover:bg-muted transition-colors"
+                >
+                  <div>
+                    <p className="font-medium">Your Doctor&apos;s Office</p>
+                    <p className="text-sm text-muted-foreground">Dr. Sarah Chen - TB Specialist</p>
+                  </div>
+                  <div className="flex items-center gap-2 text-primary font-medium">
+                    <Phone className="h-4 w-4" />
+                    1-800-555-0150
+                  </div>
+                </a>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setEmergencyDialogOpen(false)}>Close</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </CardContent>
       </Card>
     </div>

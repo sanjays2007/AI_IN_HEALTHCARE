@@ -49,8 +49,10 @@ import {
   Scale,
 } from 'lucide-react';
 import { mockPatientAssignments, VitalRecord } from '@/lib/nurse-data';
+import { useToast } from '@/hooks/use-toast';
 
 export default function VitalsPage() {
+  const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState('');
   const [showRecordDialog, setShowRecordDialog] = useState(false);
   const [selectedPatient, setSelectedPatient] = useState<string>('');
@@ -136,6 +138,10 @@ export default function VitalsPage() {
       notes: '',
     });
     setSelectedPatient('');
+    toast({
+      title: 'Vitals Recorded',
+      description: `Vitals for ${patient.patientName} have been recorded successfully.`,
+    });
   };
 
   const filteredRecords = vitalRecords.filter(r =>

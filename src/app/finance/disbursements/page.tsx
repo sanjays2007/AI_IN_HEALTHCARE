@@ -51,8 +51,10 @@ import {
   formatCurrency,
   Disbursement,
 } from '@/lib/finance-data';
+import { useToast } from '@/hooks/use-toast';
 
 export default function FinanceDisbursementsPage() {
+  const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [methodFilter, setMethodFilter] = useState<string>('all');
@@ -134,7 +136,7 @@ export default function FinanceDisbursementsPage() {
           <h1 className="text-2xl font-bold text-gray-900">Disbursements</h1>
           <p className="text-muted-foreground">Track and process financial aid payments</p>
         </div>
-        <Button className="bg-emerald-600 hover:bg-emerald-700">
+        <Button className="bg-emerald-600 hover:bg-emerald-700" onClick={() => toast({ title: 'New Disbursement', description: 'Opening new disbursement form...' })}>
           <Send className="h-4 w-4 mr-2" />
           New Disbursement
         </Button>
@@ -210,7 +212,7 @@ export default function FinanceDisbursementsPage() {
                       {formatCurrency(app.approvedAmount || app.requestedAmount)}
                     </p>
                   </div>
-                  <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700">
+                  <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700" onClick={() => toast({ title: 'Processing', description: `Initiating disbursement for ${app.patientName}...` })}>
                     <Send className="h-4 w-4" />
                   </Button>
                 </div>
@@ -257,7 +259,7 @@ export default function FinanceDisbursementsPage() {
                 <SelectItem value="cash">Cash</SelectItem>
               </SelectContent>
             </Select>
-            <Button variant="outline">
+            <Button variant="outline" onClick={() => toast({ title: 'Exporting Data', description: 'Preparing disbursements export...' })}>
               <Download className="h-4 w-4 mr-2" />
               Export
             </Button>
@@ -346,7 +348,7 @@ export default function FinanceDisbursementsPage() {
                           </Button>
                         )}
                         {disbursement.status === 'failed' && (
-                          <Button size="sm" variant="outline">
+                          <Button size="sm" variant="outline" onClick={() => toast({ title: 'Retrying', description: `Retrying disbursement ${disbursement.id}...` })}>
                             <RefreshCw className="h-4 w-4 mr-1" />
                             Retry
                           </Button>
@@ -414,7 +416,10 @@ export default function FinanceDisbursementsPage() {
               className="bg-emerald-600 hover:bg-emerald-700"
               onClick={() => {
                 setShowProcessDialog(false);
-                // Handle processing
+                toast({
+                  title: 'Disbursement Processed',
+                  description: `${formatCurrency(selectedDisbursement?.amount || 0)} has been disbursed to ${selectedDisbursement?.patientName}.`,
+                });
               }}
             >
               <CheckCircle className="h-4 w-4 mr-2" />

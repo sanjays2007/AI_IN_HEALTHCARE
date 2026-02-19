@@ -27,6 +27,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { formatCurrency } from '@/lib/finance-data';
+import { useToast } from '@/hooks/use-toast';
 
 interface Alert {
   id: string;
@@ -42,6 +43,7 @@ interface Alert {
 }
 
 export default function FinanceAlertsPage() {
+  const { toast } = useToast();
   const [alerts, setAlerts] = useState<Alert[]>([
     {
       id: '1',
@@ -175,14 +177,26 @@ export default function FinanceAlertsPage() {
 
   const markAsRead = (id: string) => {
     setAlerts(alerts.map((a) => (a.id === id ? { ...a, read: true } : a)));
+    toast({
+      title: 'Alert Read',
+      description: 'Alert has been marked as read.',
+    });
   };
 
   const dismissAlert = (id: string) => {
     setAlerts(alerts.filter((a) => a.id !== id));
+    toast({
+      title: 'Alert Dismissed',
+      description: 'Alert has been removed from your list.',
+    });
   };
 
   const markAllAsRead = () => {
     setAlerts(alerts.map((a) => ({ ...a, read: true })));
+    toast({
+      title: 'All Alerts Read',
+      description: 'All alerts have been marked as read.',
+    });
   };
 
   const formatTimestamp = (timestamp: string) => {
@@ -351,7 +365,7 @@ export default function FinanceAlertsPage() {
                   </div>
                   <div className="flex items-center gap-2">
                     {alert.actionRequired && (
-                      <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700">
+                      <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700" onClick={() => toast({ title: 'Opening Review', description: `Reviewing ${alert.relatedId || 'item'}...` })}>
                         <Eye className="h-4 w-4 mr-1" />
                         Review
                       </Button>

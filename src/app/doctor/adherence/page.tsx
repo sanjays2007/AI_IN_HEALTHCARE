@@ -11,6 +11,8 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
@@ -18,6 +20,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import {
   Activity,
   Pill,
@@ -28,16 +38,28 @@ import {
   ChevronRight,
   AlertTriangle,
   CheckCircle2,
+  Send,
+  Bell,
+  Phone,
 } from 'lucide-react';
 import Link from 'next/link';
+import { useToast } from '@/hooks/use-toast';
 import {
   mockPatientRiskProfiles,
   getRiskBadgeVariant,
+  PatientRiskProfile,
 } from '@/lib/doctor-data';
 
 export default function AdherenceMonitorPage() {
-  const [patients] = useState(mockPatientRiskProfiles);
+  const [patients, setPatients] = useState(mockPatientRiskProfiles);
   const [sortBy, setSortBy] = useState<'medication' | 'appointment' | 'communication'>('medication');
+  const [showReminderDialog, setShowReminderDialog] = useState(false);
+  const [showFollowUpDialog, setShowFollowUpDialog] = useState(false);
+  const [selectedPatient, setSelectedPatient] = useState<PatientRiskProfile | null>(null);
+  const [reminderType, setReminderType] = useState('');
+  const [reminderMessage, setReminderMessage] = useState('');
+  const [followUpType, setFollowUpType] = useState('');
+  const { toast } = useToast();
 
   const sortedPatients = [...patients].sort((a, b) => {
     switch (sortBy) {
@@ -64,6 +86,45 @@ export default function AdherenceMonitorPage() {
   const avgCommunication = Math.round(patients.reduce((sum, p) => sum + p.communicationResponseRate, 0) / patients.length);
 
   const poorAdherenceCount = patients.filter(p => p.medicationAdherence < 60 || p.appointmentAdherence < 60).length;
+
+  const handleSendReminder = (patient: PatientRiskProfile) => {
+    setSelectedPatient(patient);
+    setReminderType('');
+    setReminderMessage('');
+    setShowReminderDialog(true);
+  };
+
+  const handleScheduleFollowUp = (patient: PatientRiskProfile) => {
+    setSelectedPatient(patient);
+    setFollowUpType('');
+    setShowFollowUpDialog(true);
+  };
+
+  const sendReminder = () => {
+    if (!reminderType) {
+      toast({ variant: "destructive", title: "Please select a reminder type" });
+      return;
+    }
+
+    toast({
+      title: "Reminder Sent",
+      description: `${reminderType} reminder sent to ${selectedPatient?.name}`,
+    });
+    setShowReminderDialog(false);
+  };
+
+  const scheduleFollowUp = () => {
+    if (!followUpType) {
+      toast({ variant: "destructive", title: "Please select a follow-up type" });
+      return;
+    }
+
+    toast({
+      title: "Follow-Up Scheduled",
+      description: `${followUpType} scheduled for ${selectedPatient?.name}`,
+    });
+    setShowFollowUpDialog(false);
+  };
 
   return (
     <div className="space-y-6">
@@ -231,12 +292,131 @@ export default function AdherenceMonitorPage() {
                       <ChevronRight className="h-4 w-4 ml-1" />
                     </Link>
                   </Button>
+                  <Button 
+                    size="sm" 
+                    variant="outline"
+                    onClick={() => handleSendReminder(patient)}
+                  >
+                    <Send className="h-4 w-4 mr-1" />
+                    Remind
+                  </Button>
+                  {needsAttention && (
+                    <Button 
+                      size="sm" 
+                      variant="default"
+                      onClick={() => handleScheduleFollowUp(patient)}
+                    >
+                      <Phone className="h-4 w-4 mr-1" />
+                      Follow Up
+                    </Button>
+                  )}
                 </div>
               </CardContent>
             </Card>
           );
         })}
       </div>
+
+      {/* Send Reminder Dialog */}
+      <Dialog open={showReminderDialog} onOpenChange={setShowReminderDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Send Adherence Reminder</DialogTitle>
+            <DialogDescription>
+              Send a reminder to {selectedPatient?.name} about their treatment
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Reminder Type</Label>
+              <Select value={reminderType} onValueChange={setReminderType}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select reminder type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Medication">Medication Reminder</SelectItem>
+                  <SelectItem value="Appointment">Appointment Reminder</SelectItem>
+                  <SelectItem value="Check-in">Daily Check-in Reminder</SelectItem>
+                  <SelectItem value="Lab Test">Lab Test Reminder</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Additional Message (Optional)</Label>
+              <Textarea
+                placeholder="Add a personalized note..."
+                value={reminderMessage}
+                onChange={(e) => setReminderMessage(e.target.value)}
+                rows={3}
+              />
+            </div>
+            {selectedPatient && (
+              <div className="p-3 rounded-lg bg-muted text-sm">
+                <p><strong>Patient:</strong> {selectedPatient.name}</p>
+                <p><strong>Medication Adherence:</strong> {selectedPatient.medicationAdherence}%</p>
+                <p><strong>Appointment Adherence:</strong> {selectedPatient.appointmentAdherence}%</p>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowReminderDialog(false)}>
+              Cancel
+            </Button>
+            <Button onClick={sendReminder}>
+              <Send className="h-4 w-4 mr-2" />
+              Send Reminder
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Schedule Follow-Up Dialog */}
+      <Dialog open={showFollowUpDialog} onOpenChange={setShowFollowUpDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Schedule Follow-Up</DialogTitle>
+            <DialogDescription>
+              Schedule a follow-up for {selectedPatient?.name}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Follow-Up Type</Label>
+              <Select value={followUpType} onValueChange={setFollowUpType}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select follow-up type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Phone Call">Phone Call</SelectItem>
+                  <SelectItem value="Video Consultation">Video Consultation</SelectItem>
+                  <SelectItem value="Nurse Home Visit">Nurse Home Visit</SelectItem>
+                  <SelectItem value="In-Person Appointment">In-Person Appointment</SelectItem>
+                  <SelectItem value="Counseling Session">Counseling Session</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {selectedPatient && (
+              <div className="p-3 rounded-lg bg-red-50 dark:bg-red-900/20 text-sm border border-red-200">
+                <div className="flex items-center gap-2 mb-2">
+                  <AlertTriangle className="h-4 w-4 text-red-500" />
+                  <span className="font-medium text-red-700 dark:text-red-300">Attention Required</span>
+                </div>
+                <p><strong>Primary Risk Factor:</strong> {selectedPatient.primaryRiskFactor}</p>
+                <p><strong>Missed Appointments:</strong> {selectedPatient.missedAppointmentCount}</p>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowFollowUpDialog(false)}>
+              Cancel
+            </Button>
+            <Button onClick={scheduleFollowUp}>
+              <Calendar className="h-4 w-4 mr-2" />
+              Schedule Follow-Up
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

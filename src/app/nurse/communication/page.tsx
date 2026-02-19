@@ -49,8 +49,10 @@ import {
   Plus,
 } from 'lucide-react';
 import { mockCommunicationLogs, mockPatientAssignments, CommunicationLog } from '@/lib/nurse-data';
+import { useToast } from '@/hooks/use-toast';
 
 export default function CommunicationPage() {
+  const { toast } = useToast();
   const [logs, setLogs] = useState<CommunicationLog[]>(mockCommunicationLogs);
   const [searchQuery, setSearchQuery] = useState('');
   const [showLogDialog, setShowLogDialog] = useState(false);
@@ -110,6 +112,10 @@ export default function CommunicationPage() {
       summary: '',
       outcome: 'successful',
       duration: '',
+    });
+    toast({
+      title: 'Communication Logged',
+      description: `${newLog.type.charAt(0).toUpperCase() + newLog.type.slice(1)} with ${patient.patientName} has been logged.`,
     });
   };
 

@@ -18,6 +18,24 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
   mockFinanceStats,
   mockApplications,
   mockDisbursements,
@@ -26,14 +44,63 @@ import {
   getPriorityColor,
   getCategoryColor,
   formatCurrency,
+  FinancialApplication,
 } from '@/lib/finance-data';
+import { useToast } from '@/hooks/use-toast';
 
 export default function FinanceDashboardPage() {
+  const { toast } = useToast();
   const stats = mockFinanceStats;
   const pendingApplications = mockApplications.filter(
     (a) => a.status === 'pending' || a.status === 'under-review'
   );
   const recentDisbursements = mockDisbursements.slice(0, 5);
+  
+  const [showAppDialog, setShowAppDialog] = useState(false);
+  const [showDetailDialog, setShowDetailDialog] = useState(false);
+  const [selectedApp, setSelectedApp] = useState<FinancialApplication | null>(null);
+  const [newApp, setNewApp] = useState({
+    patientName: '',
+    patientId: '',
+    category: '',
+    amount: '',
+    notes: '',
+  });
+  
+  const handleViewApp = (app: FinancialApplication) => {
+    setSelectedApp(app);
+    setShowDetailDialog(true);
+  };
+  
+  const handleNewApplication = () => {
+    setShowAppDialog(false);
+    setNewApp({ patientName: '', patientId: '', category: '', amount: '', notes: '' });
+    toast({
+      title: 'Application Created',
+      description: `New application for ${newApp.patientName} has been submitted for review.`,
+    });
+  };
+  
+  const handleProcessDisbursement = () => {
+    toast({
+      title: 'Redirecting...',
+      description: 'Opening disbursements page.',
+    });
+  };
+  
+  const handleGenerateReport = () => {
+    toast({
+      title: 'Report Generated',
+      description: 'Monthly financial report is being prepared for download.',
+    });
+  };
+  
+  const handleViewUrgent = () => {
+    toast({
+      title: 'Urgent Cases',
+      description: `${pendingApplications.filter(a => a.priority === 'high' || a.priority === 'urgent').length} urgent cases require immediate attention.`,
+    });
+  };
 
   return (
     <div className="p-6 space-y-6">
@@ -192,7 +259,7 @@ export default function FinanceDashboardPage() {
                     <Badge className={getStatusColor(app.status)}>
                       {app.status.replace('-', ' ')}
                     </Badge>
-                    <Button variant="ghost" size="sm">
+                    <Button variant="ghost" size="sm" onClick={() => handleViewApp(app)}>
                       <Eye className="h-4 w-4" />
                     </Button>
                   </div>
@@ -303,25 +370,120 @@ export default function FinanceDashboardPage() {
         </CardHeader>
         <CardContent>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <Button className="h-auto py-4 flex-col bg-emerald-600 hover:bg-emerald-700">
+            <Button onClick={() => setShowAppDialog(true)} className="h-auto py-4 flex-col bg-emerald-600 hover:bg-emerald-700">
               <FileText className="h-5 w-5 mb-2" />
               <span>New Application</span>
             </Button>
-            <Button variant="outline" className="h-auto py-4 flex-col">
+            <Button variant="outline" className="h-auto py-4 flex-col" onClick={handleProcessDisbursement}>
               <DollarSign className="h-5 w-5 mb-2" />
               <span>Process Disbursement</span>
             </Button>
-            <Button variant="outline" className="h-auto py-4 flex-col">
+            <Button variant="outline" className="h-auto py-4 flex-col" onClick={handleGenerateReport}>
               <TrendingUp className="h-5 w-5 mb-2" />
               <span>Generate Report</span>
             </Button>
-            <Button variant="outline" className="h-auto py-4 flex-col">
+            <Button variant="outline" className="h-auto py-4 flex-col" onClick={handleViewUrgent}>
               <AlertTriangle className="h-5 w-5 mb-2" />
               <span>View Urgent Cases</span>
             </Button>
           </div>
         </CardContent>
       </Card>
+      
+      {/* New Application Dialog */}
+      <Dialog open={showAppDialog} onOpenChange={setShowAppDialog}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>New Financial Aid Application</DialogTitle>
+            <DialogDescription>Create a new application for patient financial assistance</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Patient Name</Label>
+                <Input value={newApp.patientName} onChange={(e) => setNewApp({...newApp, patientName: e.target.value})} placeholder="Enter name" />
+              </div>
+              <div className="space-y-2">
+                <Label>Patient ID</Label>
+                <Input value={newApp.patientId} onChange={(e) => setNewApp({...newApp, patientId: e.target.value})} placeholder="PT-XXXX" />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Category</Label>
+                <Select value={newApp.category} onValueChange={(v) => setNewApp({...newApp, category: v})}>
+                  <SelectTrigger><SelectValue placeholder="Select category" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="medication">Medication</SelectItem>
+                    <SelectItem value="treatment">Treatment</SelectItem>
+                    <SelectItem value="transport">Transport</SelectItem>
+                    <SelectItem value="emergency">Emergency</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Requested Amount (₹)</Label>
+                <Input type="number" value={newApp.amount} onChange={(e) => setNewApp({...newApp, amount: e.target.value})} placeholder="Enter amount" />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Notes</Label>
+              <Textarea value={newApp.notes} onChange={(e) => setNewApp({...newApp, notes: e.target.value})} placeholder="Additional details..." />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowAppDialog(false)}>Cancel</Button>
+            <Button onClick={handleNewApplication} className="bg-emerald-600 hover:bg-emerald-700">Submit Application</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Application Detail Dialog */}
+      <Dialog open={showDetailDialog} onOpenChange={setShowDetailDialog}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Application Details</DialogTitle>
+            <DialogDescription>{selectedApp?.id}</DialogDescription>
+          </DialogHeader>
+          {selectedApp && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm text-muted-foreground">Patient Name</p>
+                  <p className="font-medium">{selectedApp.patientName}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Patient ID</p>
+                  <p className="font-medium">{selectedApp.patientId}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Category</p>
+                  <Badge className={getCategoryColor(selectedApp.category)}>{selectedApp.category}</Badge>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Priority</p>
+                  <Badge className={getPriorityColor(selectedApp.priority)}>{selectedApp.priority}</Badge>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Requested Amount</p>
+                  <p className="font-medium">{formatCurrency(selectedApp.requestedAmount)}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Status</p>
+                  <Badge className={getStatusColor(selectedApp.status)}>{selectedApp.status}</Badge>
+                </div>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Notes</p>
+                <p className="text-sm">{selectedApp.notes}</p>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowDetailDialog(false)}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -11,6 +11,8 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 import {
   Select,
   SelectContent,
@@ -28,6 +30,13 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
   ClipboardList,
   Plus,
   CheckCircle2,
@@ -36,8 +45,13 @@ import {
   Calendar,
   ChevronRight,
   Filter,
+  MoreVertical,
+  Play,
+  Ban,
+  Edit,
 } from 'lucide-react';
 import Link from 'next/link';
+import { useToast } from '@/hooks/use-toast';
 import {
   mockInterventions,
   mockPatientRiskProfiles,
@@ -48,7 +62,6 @@ import {
 export default function InterventionsPage() {
   const [interventions, setInterventions] = useState<Intervention[]>([
     ...mockInterventions,
-    // Add more sample interventions
     {
       id: '4',
       patientId: '3',
@@ -75,11 +88,18 @@ export default function InterventionsPage() {
   
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [showNewDialog, setShowNewDialog] = useState(false);
+  const [showCompleteDialog, setShowCompleteDialog] = useState(false);
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [selectedIntervention, setSelectedIntervention] = useState<Intervention | null>(null);
+  const [outcomeNotes, setOutcomeNotes] = useState('');
+  const [editNotes, setEditNotes] = useState('');
   const [newIntervention, setNewIntervention] = useState({
     patientId: '',
     type: '',
     notes: '',
+    scheduledDate: '',
   });
+  const { toast } = useToast();
 
   const getPatientName = (patientId: string) => {
     const patient = mockPatientRiskProfiles.find(p => p.id === patientId);
@@ -121,22 +141,95 @@ export default function InterventionsPage() {
   const inProgressCount = interventions.filter(i => i.status === 'in_progress').length;
 
   const handleCreateIntervention = () => {
-    if (!newIntervention.patientId || !newIntervention.type) return;
+    if (!newIntervention.patientId || !newIntervention.type) {
+      toast({ variant: "destructive", title: "Please select a patient and intervention type" });
+      return;
+    }
     
     const intervention: Intervention = {
-      id: String(interventions.length + 1),
+      id: String(Date.now()),
       patientId: newIntervention.patientId,
       doctorId: 'doc-1',
       type: newIntervention.type as any,
       title: getTypeLabel(newIntervention.type),
       notes: newIntervention.notes,
       createdAt: new Date().toISOString(),
+      scheduledDate: newIntervention.scheduledDate || undefined,
       status: 'scheduled',
     };
 
     setInterventions([intervention, ...interventions]);
     setShowNewDialog(false);
-    setNewIntervention({ patientId: '', type: '', notes: '' });
+    setNewIntervention({ patientId: '', type: '', notes: '', scheduledDate: '' });
+    
+    toast({
+      title: "Intervention Created",
+      description: `${intervention.title} scheduled for ${getPatientName(intervention.patientId)}`,
+    });
+  };
+
+  const handleStartIntervention = (intervention: Intervention) => {
+    setInterventions(prev => prev.map(i => 
+      i.id === intervention.id ? { ...i, status: 'in_progress' as const } : i
+    ));
+    toast({
+      title: "Intervention Started",
+      description: `${intervention.title} is now in progress`,
+    });
+  };
+
+  const openCompleteDialog = (intervention: Intervention) => {
+    setSelectedIntervention(intervention);
+    setOutcomeNotes('');
+    setShowCompleteDialog(true);
+  };
+
+  const handleCompleteIntervention = () => {
+    if (!selectedIntervention) return;
+    
+    setInterventions(prev => prev.map(i => 
+      i.id === selectedIntervention.id 
+        ? { ...i, status: 'completed' as const, completedAt: new Date().toISOString(), outcome: outcomeNotes || 'Completed successfully' } 
+        : i
+    ));
+    
+    toast({
+      title: "Intervention Completed",
+      description: `${selectedIntervention.title} marked as completed`,
+    });
+    
+    setShowCompleteDialog(false);
+  };
+
+  const handleCancelIntervention = (intervention: Intervention) => {
+    setInterventions(prev => prev.map(i => 
+      i.id === intervention.id ? { ...i, status: 'cancelled' as const } : i
+    ));
+    toast({
+      title: "Intervention Cancelled",
+      description: `${intervention.title} has been cancelled`,
+    });
+  };
+
+  const openEditDialog = (intervention: Intervention) => {
+    setSelectedIntervention(intervention);
+    setEditNotes(intervention.notes);
+    setShowEditDialog(true);
+  };
+
+  const handleEditIntervention = () => {
+    if (!selectedIntervention) return;
+    
+    setInterventions(prev => prev.map(i => 
+      i.id === selectedIntervention.id ? { ...i, notes: editNotes } : i
+    ));
+    
+    toast({
+      title: "Notes Updated",
+      description: "Intervention notes have been updated",
+    });
+    
+    setShowEditDialog(false);
   };
 
   return (
@@ -206,7 +299,15 @@ export default function InterventionsPage() {
                 </Select>
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium">Notes</label>
+                <Label className="text-sm font-medium">Scheduled Date (optional)</Label>
+                <Input
+                  type="datetime-local"
+                  value={newIntervention.scheduledDate}
+                  onChange={(e) => setNewIntervention(prev => ({ ...prev, scheduledDate: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Notes</Label>
                 <Textarea
                   placeholder="Enter intervention details..."
                   value={newIntervention.notes}
@@ -350,17 +451,121 @@ export default function InterventionsPage() {
                       )}
                     </div>
                   </div>
-                  <Button size="sm" variant="outline" asChild>
-                    <Link href={`/doctor/patients/${intervention.patientId}`}>
-                      View Patient
-                    </Link>
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Button size="sm" variant="outline" asChild>
+                      <Link href={`/doctor/patients/${intervention.patientId}`}>
+                        View Patient
+                      </Link>
+                    </Button>
+                    {(intervention.status === 'scheduled' || intervention.status === 'in_progress') && (
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button size="sm" variant="ghost">
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          {intervention.status === 'scheduled' && (
+                            <DropdownMenuItem onClick={() => handleStartIntervention(intervention)}>
+                              <Play className="h-4 w-4 mr-2" />
+                              Start Intervention
+                            </DropdownMenuItem>
+                          )}
+                          {intervention.status === 'in_progress' && (
+                            <DropdownMenuItem onClick={() => openCompleteDialog(intervention)}>
+                              <CheckCircle2 className="h-4 w-4 mr-2" />
+                              Mark Complete
+                            </DropdownMenuItem>
+                          )}
+                          <DropdownMenuItem onClick={() => openEditDialog(intervention)}>
+                            <Edit className="h-4 w-4 mr-2" />
+                            Edit Notes
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem 
+                            className="text-destructive"
+                            onClick={() => handleCancelIntervention(intervention)}
+                          >
+                            <Ban className="h-4 w-4 mr-2" />
+                            Cancel Intervention
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    )}
+                  </div>
                 </div>
               </CardContent>
             </Card>
           ))
         )}
       </div>
+
+      {/* Complete Intervention Dialog */}
+      <Dialog open={showCompleteDialog} onOpenChange={setShowCompleteDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Complete Intervention</DialogTitle>
+            <DialogDescription>
+              Record the outcome of this intervention for {selectedIntervention && getPatientName(selectedIntervention.patientId)}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Intervention</Label>
+              <p className="text-sm font-medium">{selectedIntervention?.title}</p>
+            </div>
+            <div className="space-y-2">
+              <Label>Outcome Notes</Label>
+              <Textarea
+                placeholder="Describe the intervention outcome..."
+                value={outcomeNotes}
+                onChange={(e) => setOutcomeNotes(e.target.value)}
+                rows={4}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowCompleteDialog(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleCompleteIntervention}>
+              <CheckCircle2 className="h-4 w-4 mr-2" />
+              Mark Complete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Notes Dialog */}
+      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Intervention Notes</DialogTitle>
+            <DialogDescription>
+              Update notes for this intervention
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Notes</Label>
+              <Textarea
+                placeholder="Enter intervention notes..."
+                value={editNotes}
+                onChange={(e) => setEditNotes(e.target.value)}
+                rows={4}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowEditDialog(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleEditIntervention}>
+              Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

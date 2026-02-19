@@ -18,6 +18,14 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
   Calendar,
   Clock,
   ChevronLeft,
@@ -26,13 +34,70 @@ import {
   Activity,
   MessageSquare,
   Stethoscope,
+  CheckCircle,
+  XCircle,
+  Phone,
 } from 'lucide-react';
-import { mockTodayAppointments, getAppointmentTypeColor } from '@/lib/nurse-data';
+import { mockTodayAppointments, getAppointmentTypeColor, Appointment } from '@/lib/nurse-data';
+import { useToast } from '@/hooks/use-toast';
 
 export default function SchedulePage() {
+  const { toast } = useToast();
   const [selectedDate, setSelectedDate] = useState('2026-02-19');
   const [viewMode, setViewMode] = useState<'day' | 'week'>('day');
-  const appointments = mockTodayAppointments;
+  const [appointments, setAppointments] = useState<Appointment[]>(mockTodayAppointments);
+  const [showDetailDialog, setShowDetailDialog] = useState(false);
+  const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
+
+  const openDetailDialog = (apt: Appointment) => {
+    setSelectedAppointment(apt);
+    setShowDetailDialog(true);
+  };
+
+  const handleStartAppointment = () => {
+    if (!selectedAppointment) return;
+    setAppointments(appointments.map(a =>
+      a.id === selectedAppointment.id ? { ...a, status: 'in-progress' } : a
+    ));
+    setShowDetailDialog(false);
+    toast({
+      title: 'Appointment Started',
+      description: `Appointment with ${selectedAppointment.patientName} is now in progress.`,
+    });
+  };
+
+  const handleCompleteAppointment = () => {
+    if (!selectedAppointment) return;
+    setAppointments(appointments.map(a =>
+      a.id === selectedAppointment.id ? { ...a, status: 'completed' } : a
+    ));
+    setShowDetailDialog(false);
+    toast({
+      title: 'Appointment Completed',
+      description: `Appointment with ${selectedAppointment.patientName} has been marked as completed.`,
+    });
+  };
+
+  const handleCancelAppointment = () => {
+    if (!selectedAppointment) return;
+    setAppointments(appointments.map(a =>
+      a.id === selectedAppointment.id ? { ...a, status: 'cancelled' } : a
+    ));
+    setShowDetailDialog(false);
+    toast({
+      title: 'Appointment Cancelled',
+      description: `Appointment with ${selectedAppointment.patientName} has been cancelled.`,
+      variant: 'destructive',
+    });
+  };
+
+  const handleCallPatient = () => {
+    if (!selectedAppointment) return;
+    toast({
+      title: 'Calling Patient',
+      description: `Initiating call to ${selectedAppointment.patientName}...`,
+    });
+  };
 
   const timeSlots = Array.from({ length: 10 }, (_, i) => {
     const hour = 8 + i;
@@ -238,13 +303,109 @@ export default function SchedulePage() {
                   <Badge className={getAppointmentTypeColor(apt.type)}>
                     {apt.type}
                   </Badge>
-                  <Button size="sm" variant="outline">View Details</Button>
+                  <Button size="sm" variant="outline" onClick={() => openDetailDialog(apt)}>View Details</Button>
                 </div>
               </div>
             ))}
           </div>
         </CardContent>
       </Card>
+
+      {/* Appointment Details Dialog */}
+      <Dialog open={showDetailDialog} onOpenChange={setShowDetailDialog}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Appointment Details</DialogTitle>
+            <DialogDescription>
+              View and manage this appointment
+            </DialogDescription>
+          </DialogHeader>
+          {selectedAppointment && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm text-muted-foreground">Patient</p>
+                  <p className="font-medium">{selectedAppointment.patientName}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Patient ID</p>
+                  <p className="font-medium">{selectedAppointment.patientId}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Time</p>
+                  <p className="font-medium">{selectedAppointment.time}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Duration</p>
+                  <p className="font-medium">{selectedAppointment.duration} minutes</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Type</p>
+                  <Badge className={getAppointmentTypeColor(selectedAppointment.type)}>
+                    {selectedAppointment.type}
+                  </Badge>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Status</p>
+                  <Badge variant={
+                    selectedAppointment.status === 'completed' ? 'default' :
+                    selectedAppointment.status === 'in-progress' ? 'secondary' :
+                    selectedAppointment.status === 'cancelled' ? 'destructive' : 'outline'
+                  }>
+                    {selectedAppointment.status}
+                  </Badge>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Doctor</p>
+                  <p className="font-medium">{selectedAppointment.doctor}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Room</p>
+                  <p className="font-medium">{selectedAppointment.room}</p>
+                </div>
+              </div>
+              <div className="flex gap-2 pt-4">
+                <Button
+                  variant="outline"
+                  onClick={handleCallPatient}
+                  className="flex-1"
+                >
+                  <Phone className="h-4 w-4 mr-2" />
+                  Call Patient
+                </Button>
+                {selectedAppointment.status === 'scheduled' && (
+                  <Button
+                    onClick={handleStartAppointment}
+                    className="flex-1 bg-teal-600 hover:bg-teal-700"
+                  >
+                    <CheckCircle className="h-4 w-4 mr-2" />
+                    Start
+                  </Button>
+                )}
+                {selectedAppointment.status === 'in-progress' && (
+                  <Button
+                    onClick={handleCompleteAppointment}
+                    className="flex-1 bg-green-600 hover:bg-green-700"
+                  >
+                    <CheckCircle className="h-4 w-4 mr-2" />
+                    Complete
+                  </Button>
+                )}
+                {selectedAppointment.status !== 'cancelled' && selectedAppointment.status !== 'completed' && (
+                  <Button
+                    variant="destructive"
+                    onClick={handleCancelAppointment}
+                    className="flex-1"
+                  >
+                    <XCircle className="h-4 w-4 mr-2" />
+                    Cancel
+                  </Button>
+                )}
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

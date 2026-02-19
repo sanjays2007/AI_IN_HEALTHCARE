@@ -57,7 +57,10 @@ import {
   ChevronRight,
   Play,
   Loader2,
+  Undo2,
+  Download,
 } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
 import {
   mockPatientRiskProfiles,
@@ -97,6 +100,11 @@ export default function PatientRiskDetailPage() {
   });
   const [isSimulating, setIsSimulating] = useState(false);
   const [simulationResults, setSimulationResults] = useState<PredictiveScenario[]>([]);
+  const [patientInterventions, setPatientInterventions] = useState<Intervention[]>(interventions);
+  const [showMessageDialog, setShowMessageDialog] = useState(false);
+  const [showVideoDialog, setShowVideoDialog] = useState(false);
+  const [messageText, setMessageText] = useState('');
+  const { toast } = useToast();
 
   if (!patient) {
     return (
@@ -110,10 +118,72 @@ export default function PatientRiskDetailPage() {
 
   const handleAcceptRecommendation = (recId: string) => {
     setActionRecommendations(prev => ({ ...prev, [recId]: 'accepted' }));
+    toast({
+      title: "Recommendation Accepted",
+      description: "Intervention has been scheduled",
+    });
   };
 
   const handleIgnoreRecommendation = (recId: string) => {
     setActionRecommendations(prev => ({ ...prev, [recId]: 'ignored' }));
+    toast({
+      title: "Recommendation Ignored",
+      description: "You can undo this action",
+    });
+  };
+
+  const handleUndoRecommendation = (recId: string) => {
+    setActionRecommendations(prev => {
+      const newState = { ...prev };
+      delete newState[recId];
+      return newState;
+    });
+    toast({ title: "Action Undone" });
+  };
+
+  const handleSendMessage = () => {
+    if (!messageText.trim()) {
+      toast({ variant: "destructive", title: "Please enter a message" });
+      return;
+    }
+    toast({
+      title: "Message Sent",
+      description: `Message sent to ${patient?.name}`,
+    });
+    setShowMessageDialog(false);
+    setMessageText('');
+  };
+
+  const handleStartVideoCall = () => {
+    toast({
+      title: "Video Call Starting",
+      description: `Connecting with ${patient?.name}...`,
+    });
+    setShowVideoDialog(false);
+  };
+
+  const handleSaveIntervention = () => {
+    if (!newIntervention.type) {
+      toast({ variant: "destructive", title: "Please select an intervention type" });
+      return;
+    }
+    const intervention: Intervention = {
+      id: String(Date.now()),
+      patientId: patientId,
+      doctorId: 'doc-1',
+      type: newIntervention.type as any,
+      title: newIntervention.type.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
+      notes: newIntervention.notes,
+      createdAt: new Date().toISOString(),
+      status: 'scheduled',
+    };
+    setPatientInterventions(prev => [intervention, ...prev]);
+    setShowInterventionDialog(false);
+    setNewIntervention({ type: '', notes: '' });
+    toast({
+      title: "Intervention Logged",
+      description: `${intervention.title} scheduled for ${patient?.name}`,
+    });
   };
 
   const handleRunSimulation = () => {
@@ -168,11 +238,11 @@ export default function PatientRiskDetailPage() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm">
+          <Button variant="outline" size="sm" onClick={() => setShowMessageDialog(true)}>
             <MessageSquare className="h-4 w-4 mr-2" />
             Message
           </Button>
-          <Button variant="outline" size="sm">
+          <Button variant="outline" size="sm" onClick={() => setShowVideoDialog(true)}>
             <Video className="h-4 w-4 mr-2" />
             Video Call
           </Button>
@@ -649,7 +719,7 @@ export default function PatientRiskDetailPage() {
                             <span className="text-muted-foreground">{rec.expectedImpact}</span>
                           </div>
                         </div>
-                        {!actionRecommendations[rec.id] && (
+                        {!actionRecommendations[rec.id] ? (
                           <div className="flex gap-2">
                             <Button 
                               size="sm" 
@@ -667,6 +737,15 @@ export default function PatientRiskDetailPage() {
                               Ignore
                             </Button>
                           </div>
+                        ) : (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => handleUndoRecommendation(rec.id)}
+                          >
+                            <Undo2 className="h-4 w-4 mr-1" />
+                            Undo
+                          </Button>
                         )}
                       </div>
                     </div>
@@ -683,14 +762,14 @@ export default function PatientRiskDetailPage() {
               <CardDescription>Previously logged interventions for this patient</CardDescription>
             </CardHeader>
             <CardContent>
-              {interventions.length === 0 ? (
+              {patientInterventions.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
                   <FileText className="h-8 w-8 mx-auto mb-2 opacity-50" />
                   <p>No interventions logged yet</p>
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {interventions.map((intervention) => (
+                  {patientInterventions.map((intervention) => (
                     <div key={intervention.id} className="p-3 rounded-lg border bg-muted/30">
                       <div className="flex items-center justify-between mb-2">
                         <span className="font-medium">{intervention.title}</span>
@@ -872,12 +951,64 @@ export default function PatientRiskDetailPage() {
             <Button variant="outline" onClick={() => setShowInterventionDialog(false)}>
               Cancel
             </Button>
-            <Button onClick={() => {
-              // Save intervention logic here
-              setShowInterventionDialog(false);
-              setNewIntervention({ type: '', notes: '' });
-            }}>
+            <Button onClick={handleSaveIntervention}>
               Save Intervention
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Message Dialog */}
+      <Dialog open={showMessageDialog} onOpenChange={setShowMessageDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Send Message</DialogTitle>
+            <DialogDescription>
+              Send a secure message to {patient.name}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <Textarea
+              placeholder="Type your message..."
+              value={messageText}
+              onChange={(e) => setMessageText(e.target.value)}
+              rows={4}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowMessageDialog(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSendMessage}>
+              <MessageSquare className="h-4 w-4 mr-2" />
+              Send Message
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Video Call Dialog */}
+      <Dialog open={showVideoDialog} onOpenChange={setShowVideoDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Start Video Call</DialogTitle>
+            <DialogDescription>
+              Initiate a video consultation with {patient.name}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-6 text-center">
+            <Video className="h-16 w-16 mx-auto mb-4 text-blue-600" />
+            <p className="text-muted-foreground">
+              A notification will be sent to the patient to join the call
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowVideoDialog(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleStartVideoCall}>
+              <Video className="h-4 w-4 mr-2" />
+              Start Call
             </Button>
           </DialogFooter>
         </DialogContent>

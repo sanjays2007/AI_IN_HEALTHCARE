@@ -5,6 +5,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Calendar } from '@/components/ui/calendar';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { 
   Smile, 
@@ -12,10 +16,12 @@ import {
   Frown, 
   AlertCircle,
   TrendingUp,
-  Calendar,
   MessageCircle,
   Heart,
-  HeartCrack
+  HeartCrack,
+  Clock, 
+  Send, 
+  CalendarDays
 } from 'lucide-react';
 import { mockMoodEntries, MoodEntry } from '@/lib/patient-data';
 
@@ -36,7 +42,49 @@ export default function MoodPage() {
   const [hasCheckedInToday, setHasCheckedInToday] = useState(
     moodEntries.some(e => e.date === new Date().toISOString().split('T')[0])
   );
+  const [chatDialogOpen, setChatDialogOpen] = useState(false);
+  const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false);
+  const [chatMessage, setChatMessage] = useState('');
+  const [chatMessages, setChatMessages] = useState<{ sender: 'user' | 'counselor'; text: string }[]>([
+    { sender: 'counselor', text: 'Hello! I\'m here to listen. How are you feeling today?' }
+  ]);
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
+  const [selectedTime, setSelectedTime] = useState('');
   const { toast } = useToast();
+
+  const handleSendMessage = () => {
+    if (!chatMessage.trim()) return;
+    
+    setChatMessages(prev => [...prev, { sender: 'user', text: chatMessage }]);
+    setChatMessage('');
+    
+    // Simulate counselor response
+    setTimeout(() => {
+      setChatMessages(prev => [...prev, { 
+        sender: 'counselor', 
+        text: 'Thank you for sharing that with me. It takes courage to open up. Can you tell me more about what\'s been on your mind?' 
+      }]);
+    }, 1500);
+  };
+
+  const handleScheduleSession = () => {
+    if (!selectedDate || !selectedTime) {
+      toast({
+        variant: "destructive",
+        title: "Missing Information",
+        description: "Please select both a date and time for your session.",
+      });
+      return;
+    }
+    
+    setScheduleDialogOpen(false);
+    toast({
+      title: "Session Scheduled",
+      description: `Your counseling session is booked for ${selectedDate.toLocaleDateString()} at ${selectedTime}.`,
+    });
+    setSelectedDate(undefined);
+    setSelectedTime('');
+  };
 
   const handleSubmit = () => {
     if (!selectedMood) {
@@ -240,7 +288,7 @@ export default function MoodPage() {
                     <div className="flex items-center gap-2">
                       <span className={`font-medium ${getMoodColor(entry.mood)}`}>{entry.mood}</span>
                       <span className="text-sm text-muted-foreground flex items-center gap-1">
-                        <Calendar className="h-3 w-3" />
+                        <CalendarDays className="h-3 w-3" />
                         {new Date(entry.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
                       </span>
                     </div>
@@ -274,13 +322,119 @@ export default function MoodPage() {
             Emotional support is available 24/7. You don&apos;t have to face this alone.
           </p>
           <div className="flex flex-wrap gap-2">
-            <Button variant="outline" className="border-blue-300">
-              <MessageCircle className="mr-2 h-4 w-4" />
-              Chat with Counselor
-            </Button>
-            <Button variant="outline" className="border-blue-300">
-              Schedule Counseling Session
-            </Button>
+            <Dialog open={chatDialogOpen} onOpenChange={setChatDialogOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline" className="border-blue-300">
+                  <MessageCircle className="mr-2 h-4 w-4" />
+                  Chat with Counselor
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[500px]">
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-2">
+                    <MessageCircle className="h-5 w-5 text-blue-600" />
+                    Chat with Counselor
+                  </DialogTitle>
+                  <DialogDescription>
+                    Our counselors are here to support you. Messages are confidential.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="flex flex-col h-[300px]">
+                  <div className="flex-1 overflow-y-auto space-y-3 p-3 border rounded-lg bg-muted/30">
+                    {chatMessages.map((msg, idx) => (
+                      <div key={idx} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
+                        <div className={`max-w-[80%] p-3 rounded-lg text-sm ${
+                          msg.sender === 'user' 
+                            ? 'bg-primary text-primary-foreground' 
+                            : 'bg-muted'
+                        }`}>
+                          {msg.text}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="flex gap-2 mt-3">
+                    <Textarea
+                      placeholder="Type your message..."
+                      value={chatMessage}
+                      onChange={(e) => setChatMessage(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                          e.preventDefault();
+                          handleSendMessage();
+                        }
+                      }}
+                      rows={2}
+                      className="flex-1"
+                    />
+                    <Button onClick={handleSendMessage} size="icon" className="h-auto">
+                      <Send className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
+            
+            <Dialog open={scheduleDialogOpen} onOpenChange={setScheduleDialogOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline" className="border-blue-300">
+                  <CalendarDays className="mr-2 h-4 w-4" />
+                  Schedule Counseling Session
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[425px]">
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-2">
+                    <CalendarDays className="h-5 w-5 text-blue-600" />
+                    Schedule Counseling Session
+                  </DialogTitle>
+                  <DialogDescription>
+                    Book a private session with one of our counselors.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                  <div className="flex justify-center">
+                    <Calendar
+                      mode="single"
+                      selected={selectedDate}
+                      onSelect={setSelectedDate}
+                      disabled={(date) => date < new Date() || date.getDay() === 0}
+                      className="rounded-md border"
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="time">Select Time</Label>
+                    <Select value={selectedTime} onValueChange={setSelectedTime}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Choose a time slot" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="09:00 AM">09:00 AM</SelectItem>
+                        <SelectItem value="10:00 AM">10:00 AM</SelectItem>
+                        <SelectItem value="11:00 AM">11:00 AM</SelectItem>
+                        <SelectItem value="02:00 PM">02:00 PM</SelectItem>
+                        <SelectItem value="03:00 PM">03:00 PM</SelectItem>
+                        <SelectItem value="04:00 PM">04:00 PM</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {selectedDate && selectedTime && (
+                    <div className="p-3 rounded-lg bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800">
+                      <p className="text-sm text-green-700 dark:text-green-300">
+                        <strong>Your session:</strong> {selectedDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })} at {selectedTime}
+                      </p>
+                    </div>
+                  )}
+                </div>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setScheduleDialogOpen(false)}>Cancel</Button>
+                  <Button onClick={handleScheduleSession}>
+                    <Clock className="mr-2 h-4 w-4" />
+                    Confirm Booking
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           </div>
         </CardContent>
       </Card>

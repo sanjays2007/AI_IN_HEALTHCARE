@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useToast } from '@/hooks/use-toast';
 import {
   Card,
   CardContent,
@@ -123,6 +124,7 @@ const recentExports = [
 ];
 
 export default function ReportsPage() {
+  const { toast } = useToast();
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedDateRange, setSelectedDateRange] = useState<string>('month');
   const [selectedFormat, setSelectedFormat] = useState<string>('pdf');
@@ -134,8 +136,43 @@ export default function ReportsPage() {
     : reportTemplates.filter(r => r.category === selectedCategory);
 
   const handleGenerate = (reportId: string) => {
+    const report = reportTemplates.find(r => r.id === reportId);
     setGenerating(reportId);
-    setTimeout(() => setGenerating(null), 2000);
+    setTimeout(() => {
+      setGenerating(null);
+      toast({
+        title: 'Report Generated',
+        description: `${report?.name || 'Report'} has been generated successfully.`,
+      });
+    }, 2000);
+  };
+
+  const handleQuickGenerate = () => {
+    toast({
+      title: 'Generating Report',
+      description: `Custom ${selectedFormat.toUpperCase()} report is being generated.`,
+    });
+  };
+
+  const handleDownload = (name: string) => {
+    toast({
+      title: 'Download Started',
+      description: `Downloading ${name}`,
+    });
+  };
+
+  const handleAddSchedule = () => {
+    toast({
+      title: 'Coming Soon',
+      description: 'Schedule configuration will be available soon.',
+    });
+  };
+
+  const handleEditSchedule = (name: string) => {
+    toast({
+      title: 'Edit Schedule',
+      description: `Editing schedule for ${name}`,
+    });
   };
 
   const categories = ['all', ...Array.from(new Set(reportTemplates.map(r => r.category)))];
@@ -222,7 +259,7 @@ export default function ReportsPage() {
             </div>
             <div className="space-y-2">
               <Label>&nbsp;</Label>
-              <Button className="w-full bg-purple-600 hover:bg-purple-700">
+              <Button className="w-full bg-purple-600 hover:bg-purple-700" onClick={handleQuickGenerate}>
                 <Download className="h-4 w-4 mr-2" />
                 Generate Report
               </Button>
@@ -336,7 +373,7 @@ export default function ReportsPage() {
                     <CheckCircle2 className="h-3 w-3 mr-1" />
                     {export_.status}
                   </Badge>
-                  <Button size="sm" variant="ghost">
+                  <Button size="sm" variant="ghost" onClick={() => handleDownload(export_.name)}>
                     <Download className="h-4 w-4" />
                   </Button>
                 </div>
@@ -353,7 +390,7 @@ export default function ReportsPage() {
             <CardTitle>Scheduled Reports</CardTitle>
             <CardDescription>Automatically generated reports</CardDescription>
           </div>
-          <Button variant="outline" size="sm">
+          <Button variant="outline" size="sm" onClick={handleAddSchedule}>
             <Calendar className="h-4 w-4 mr-2" />
             Add Schedule
           </Button>
@@ -367,7 +404,7 @@ export default function ReportsPage() {
               </div>
               <div className="flex items-center gap-2">
                 <Badge>Active</Badge>
-                <Button size="sm" variant="ghost">Edit</Button>
+                <Button size="sm" variant="ghost" onClick={() => handleEditSchedule('Weekly Performance Summary')}>Edit</Button>
               </div>
             </div>
             <div className="flex items-center justify-between p-3 rounded-lg border">
@@ -377,7 +414,7 @@ export default function ReportsPage() {
               </div>
               <div className="flex items-center gap-2">
                 <Badge>Active</Badge>
-                <Button size="sm" variant="ghost">Edit</Button>
+                <Button size="sm" variant="ghost" onClick={() => handleEditSchedule('Monthly Compliance Report')}>Edit</Button>
               </div>
             </div>
             <div className="flex items-center justify-between p-3 rounded-lg border">
@@ -387,7 +424,7 @@ export default function ReportsPage() {
               </div>
               <div className="flex items-center gap-2">
                 <Badge variant="secondary">Paused</Badge>
-                <Button size="sm" variant="ghost">Edit</Button>
+                <Button size="sm" variant="ghost" onClick={() => handleEditSchedule('Quarterly Board Report')}>Edit</Button>
               </div>
             </div>
           </div>
