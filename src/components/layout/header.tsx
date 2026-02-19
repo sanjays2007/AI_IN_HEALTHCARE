@@ -22,7 +22,7 @@ import { SidebarTrigger } from '@/components/ui/sidebar';
 import { usePathname } from 'next/navigation';
 import { Fragment } from 'react';
 import { UserNav } from './user-nav';
-import { Home, Bell } from 'lucide-react';
+import { Home, Bell, Globe } from 'lucide-react';
 import { ThemeToggle } from './theme-toggle';
 import Link from 'next/link';
 
@@ -96,6 +96,23 @@ export default function AppHeader() {
              </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
+        
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-8 w-8">
+              <Globe className="h-5 w-5" />
+              <span className="sr-only">Toggle language</span>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuLabel>Language</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem>English</DropdownMenuItem>
+            <DropdownMenuItem>Español</DropdownMenuItem>
+            <DropdownMenuItem>हिन्दी</DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+
         <ThemeToggle />
         <UserNav />
       </div>
