@@ -14,6 +14,7 @@ import PatientNudgeTool from './components/patient-nudge-tool';
 import { useParams, notFound } from 'next/navigation';
 import PersonalizedEducation from './components/personalized-education';
 import FinancialAssistance from './components/financial-assistance';
+import ContactLogPanel from './components/contact-log-panel';
 
 export default function PatientDetailPage() {
   const params = useParams();
@@ -59,6 +60,7 @@ export default function PatientDetailPage() {
           <DoctorSummary patient={patient} />
           <RiskPanel patient={patient} />
           <RecommendationPanel patient={patient} />
+          <ContactLogPanel />
           <SimulationTool patient={patient} />
           <PatientNudgeTool patient={patient} />
           <PersonalizedEducation patient={patient} />
