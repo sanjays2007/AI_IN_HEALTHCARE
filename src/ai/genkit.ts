@@ -1,7 +1,3 @@
-import {genkit} from 'genkit';
-import {googleAI} from '@genkit-ai/google-genai';
-
-export const ai = genkit({
-  plugins: [googleAI()],
-  model: 'googleai/gemini-2.5-flash',
-});
+﻿// Local AI engine - no external API dependencies.
+// All AI functionality is in local-engine.ts
+// This file is kept as a stub for compatibility.

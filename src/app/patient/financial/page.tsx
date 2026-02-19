@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -22,8 +22,8 @@ import {
   Wallet,
   Calendar,
   TrendingDown,
-  HandHeart,
-  Building
+  HeartPulse,
+  Landmark
 } from 'lucide-react';
 import { mockFinancialInfo } from '@/lib/patient-data';
 
@@ -124,7 +124,7 @@ export default function FinancialPage() {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-1">
-              <HandHeart className="h-4 w-4" />
+              <HeartPulse className="h-4 w-4" />
               Aid Status
             </CardTitle>
           </CardHeader>
@@ -188,7 +188,7 @@ export default function FinancialPage() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <HandHeart className="h-5 w-5" />
+            <HeartPulse className="h-5 w-5" />
             Financial Aid Programs
           </CardTitle>
           <CardDescription>Assistance programs you may qualify for</CardDescription>
@@ -218,7 +218,7 @@ export default function FinancialPage() {
             <Dialog open={aidDialogOpen} onOpenChange={setAidDialogOpen}>
               <DialogTrigger asChild>
                 <Button className="w-full md:w-auto">
-                  <HandHeart className="mr-2 h-4 w-4" />
+                  <HeartPulse className="mr-2 h-4 w-4" />
                   Apply for Financial Aid
                 </Button>
               </DialogTrigger>
@@ -285,7 +285,7 @@ export default function FinancialPage() {
               {financialInfo.eligibleSchemes.map((scheme, idx) => (
                 <div key={idx} className="flex items-center justify-between p-3 rounded-lg border">
                   <div className="flex items-center gap-3">
-                    <Building className="h-5 w-5 text-muted-foreground" />
+                    <Landmark className="h-5 w-5 text-muted-foreground" />
                     <span className="font-medium">{scheme}</span>
                   </div>
                   <Button size="sm" variant="outline">Learn More</Button>
@@ -365,3 +365,4 @@ export default function FinancialPage() {
     </div>
   );
 }
+
